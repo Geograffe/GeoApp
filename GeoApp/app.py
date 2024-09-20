@@ -48,104 +48,82 @@ def main():
 
     create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location)
 
-    # Language selection logic
-    if 'language' not in st.session_state:
-        st.write("Please select your language:")
-        
-        col1, col2, col3, col4 = st.columns(4)
-
-        with col1:
-            if st.button("English", key="english_btn"):
-                st.session_state['language'] = 'English'
-        with col2:
-            if st.button("Bahasa Melayu", key="malay_btn"):
-                st.session_state['language'] = 'Malay'
-        with col3:
-            if st.button("தமிழ்", key="tamil_btn"):
-                st.session_state['language'] = 'Tamil'
-        with col4:
-            if st.button("中文", key="chinese_btn"):
-                st.session_state['language'] = 'Chinese'
-
     # Main flow after language selection
-    if 'language' in st.session_state:
-        st.success(f"Selected Language: {st.session_state['language']}")
-        prompt_text = prompts[st.session_state['language']]['prompt']
-        st.write(prompt_text)
+if 'language' in st.session_state:
+    st.success(f"Selected Language: {st.session_state['language']}")
+    prompt_text = prompts[st.session_state['language']]['prompt']
+    st.write(prompt_text)
 
-        user_input = st.text_input("Postal Code:", value=st.session_state.get("user_input", ""))
+    user_input = st.text_input("Postal Code:", value=st.session_state.get("user_input", ""))
 
-        if st.button(prompts[st.session_state['language']]['enter_button'], key="enter_btn"):
-            if user_input:
-                latlon = get_latlon_from_postal(user_input)
-                if latlon:
-                    lat, lon = latlon
-                    st.session_state["user_input"] = user_input  # Save postal code input to session state
-                    st.session_state["lat"] = lat
-                    st.session_state["lon"] = lon
-                    st.success(f"Location Found: Latitude {lat}, Longitude {lon}")
+    if st.button(prompts[st.session_state['language']]['enter_button'], key="enter_btn"):
+        if user_input:
+            latlon = get_latlon_from_postal(user_input)
+            if latlon:
+                lat, lon = latlon
+                st.session_state["user_input"] = user_input  # Save postal code input to session state
+                st.session_state["lat"] = lat
+                st.session_state["lon"] = lon
+                st.success(f"Location Found: Latitude {lat}, Longitude {lon}")
 
-                    weather_data = get_weather_data(lat, lon)
-                    st.subheader("Current Weather Conditions")
-                    if weather_data:
-                        st.write(f"**Weather Station**: {weather_data['name']}")
-                        st.write(f"**Weather**: {weather_data['weather'][0]['description'].capitalize()}")
-                        st.write(f"**Temperature**: {weather_data['main']['temp']}°C")
-                        st.write(f"**Feels Like**: {weather_data['main']['feels_like']}°C")
-                        st.write(f"**Humidity**: {weather_data['main']['humidity']}%")
-                        st.write(f"**Wind Speed**: {weather_data['wind']['speed']} m/s, Direction: {weather_data['wind']['deg']}°")
+                weather_data = get_weather_data(lat, lon)
+                st.subheader("Current Weather Conditions")
+                if weather_data:
+                    st.write(f"**Weather Station**: {weather_data['name']}")
+                    st.write(f"**Weather**: {weather_data['weather'][0]['description'].capitalize()}")
+                    st.write(f"**Temperature**: {weather_data['main']['temp']}°C")
+                    st.write(f"**Feels Like**: {weather_data['main']['feels_like']}°C")
+                    st.write(f"**Humidity**: {weather_data['main']['humidity']}%")
+                    st.write(f"**Wind Speed**: {weather_data['wind']['speed']} m/s, Direction: {weather_data['wind']['deg']}°")
 
-                    extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
-                    dengue_clusters = get_dengue_clusters_with_extents(extents)
+                extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
+                dengue_clusters = get_dengue_clusters_with_extents(extents)
 
-                    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-                    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
+                extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
+                polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
 
-                    theme_data = []
-                    for theme in themes:
-                        theme_data.extend(get_theme_data(theme, extents))
+                theme_data = []
+                for theme in themes:
+                    theme_data.extend(get_theme_data(theme, extents))
 
-                    # Select Route Type
-                    route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+                # Select Route Type
+                route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
 
-                    # For public transport, ask for additional parameters
-                    if route_type == "pt":
-                        mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-                        max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
-                        date = st.date_input("Select Travel Date", datetime.now(), key="date")
-                        time = st.time_input("Select Travel Time", datetime.now(), key="time")
+                # Public transport specific parameters
+                if route_type == "pt":
+                    mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+                    max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
 
-                        # Ensure date and time are properly formatted
-                        date_str = date.strftime("%m-%d-%Y") if date else None
-                        time_str = time.strftime("%H:%M:%S") if time else None
-                    else:
-                        mode = None
-                        max_walk_distance = None
-                        date_str = None
-                        time_str = None
+                    # Get the current date and time
+                    current_datetime = datetime.now()
+                    date_str = current_datetime.strftime("%m-%d-%Y")
+                    time_str = current_datetime.strftime("%H:%M:%S")
 
-                    # Display the theme locations and return the lat-lng of the selected location
-                    selected_lat_lng = display_theme_locations(theme_data)
-
-                    if selected_lat_lng:
-                        start = f"{lat},{lon}"
-                        end = selected_lat_lng
-
-                        try:
-                            # Only generate route if a destination is selected
-                            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
-
-                            if route_data and "route_geometry" in route_data:
-                                route_geometry = route_data["route_geometry"]
-                                create_map_with_features(lat, lon, user_input, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
-                            else:
-                                raise ValueError("Route data missing or invalid.")
-                        except Exception as e:
-                            st.error(f"Failed to generate route: {str(e)}")
-                    else:
-                        st.error("No location selected.")
                 else:
-                    st.error(prompts[st.session_state['language']]['error_message'])
+                    mode = None
+                    max_walk_distance = None
+                    date_str = None
+                    time_str = None
+
+                # Display theme locations and allow user to select one
+                selected_lat_lng = display_theme_locations(theme_data)
+
+                if selected_lat_lng:
+                    start = f"{lat},{lon}"
+                    end = selected_lat_lng
+
+                    # Generate the route
+                    route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+
+                    if route_data and "route_geometry" in route_data:
+                        route_geometry = route_data["route_geometry"]
+                        create_map_with_features(lat, lon, user_input, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                    else:
+                        st.error("Failed to generate route or route geometry missing.")
+                else:
+                    st.error("No location selected.")
+            else:
+                st.error(prompts[st.session_state['language']]['error_message'])
 
     # Restart button
     if st.button("Restart", key="restart_btn"):

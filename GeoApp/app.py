@@ -69,14 +69,14 @@ def main():
             coords = polygon['coordinates']
             # Check for multi-polygon structure (a list of lists)
             if isinstance(coords[0], list):
-                # MultiPolygon: Extract the first point of the first polygon
-                point_coords = coords[0][0] if isinstance(coords[0][0], (list, tuple)) else coords[0]
+                # MultiPolygon: Extract the first point of the first polygon part (ensure you get just lon, lat)
+                point_coords = coords[0][0][:2] if len(coords[0][0]) >= 2 else coords[0][0]
             else:
                 # Single Polygon: Directly extract the coordinates
-                point_coords = coords
-            # Ensure point_coords has at least two values (lon, lat) and discard any extras
-            if len(point_coords) >= 2:
-                lon, lat = point_coords[:2]  # Extract only the first two values (lon, lat)
+                point_coords = coords[:2]  # Ensure only two values (lon, lat)
+            # Ensure point_coords has at least two values (lon, lat)
+            if len(point_coords) == 2:
+                lon, lat = point_coords  # Unpack only lon and lat
                 polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
                 nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
 

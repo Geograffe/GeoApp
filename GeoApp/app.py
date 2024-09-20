@@ -221,7 +221,7 @@ def main():
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]
                     
-                    # Update this line by removing 'route_type'
+                    # Display the map with the route
                     create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
                     # Display additional information about the route
@@ -233,8 +233,18 @@ def main():
                         st.write(f"**Return Home Time**: {time_str}")
                     
                     st.write(f"**Fare**: {route_data.get('fare', 'N/A')}")
+
+                    # Display detailed transit steps
+                    st.subheader("Steps to get home:")
+                    for transit in route_data['transit_details']:
+                        mode = transit.get("mode", "Unknown mode")
+                        route = transit.get("route", "Unknown route")
+                        agency = transit.get("agency", "Unknown agency")
+                        st.write(f"- **Mode**: {mode}, **Route**: {route}, **Agency**: {agency}")
+
                 else:
                     st.error("Failed to generate return home route using public transport.")
+
 
 
 

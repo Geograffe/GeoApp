@@ -137,14 +137,16 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
     transit_details = []
     full_route_geometry = []  # List to hold combined decoded coordinates for each leg
     for leg in itinerary["legs"]:
-        if leg["transitLeg"]:  # Check if it's a transit leg (bus/train)
-            mode = leg["mode"]
+        mode = leg["mode"]
+        if leg["transitLeg"]:  # If it's a transit leg (bus/train)
             route = leg.get("route", "")
             agency = leg.get("agencyName", "")
             transit_details.append({
                 "mode": mode,
                 "route": route,
-                "agency": agency
+                "agency": agency,
+                "start": leg["from"]["name"],
+                "end": leg["to"]["name"]
             })
 
         # Decode each leg's geometry and append to the overall route

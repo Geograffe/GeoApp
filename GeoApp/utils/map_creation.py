@@ -78,11 +78,16 @@ def display_theme_locations(theme_data):
             lat_lng_str = theme.get('LatLng', None)
             if lat_lng_str:
                 try:
-                    lat_lng_list = eval(lat_lng_str)  # Safely convert string to list
-                    if isinstance(lat_lng_list, list) and len(lat_lng_list) > 0:
+                    lat_lng_list = eval(lat_lng_str)  # Convert string to list
+                    if isinstance(lat_lng_list, list) and len(lat_lng_list) > 0 and isinstance(lat_lng_list[0], list):
                         lat_lng = lat_lng_list[0]
-                        st.write(f"**Latitude**: {lat_lng[0]}")
-                        st.write(f"**Longitude**: {lat_lng[1]}")
+                        if len(lat_lng) == 2:
+                            st.write(f"**Latitude**: {lat_lng[0]}")
+                            st.write(f"**Longitude**: {lat_lng[1]}")
+                        else:
+                            st.write("LatLng data is incomplete.")
+                    else:
+                        st.write("Invalid LatLng format.")
                 except Exception as e:
                     st.write(f"Error parsing LatLng: {e}")
             st.write(f"[Link]({theme.get('HYPERLINK', '#')})")

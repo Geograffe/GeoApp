@@ -48,6 +48,20 @@ def get_theme_data(query_name, extents):
         return []
     
 
+# Function to handle walking, driving, cycling routes
+def get_general_route(start, end, route_type):
+    url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType={route_type}"
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f"Failed to retrieve {route_type} route. Status Code: {response.status_code}")
+        return None
+
 def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1000, num_itineraries=1):
     url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType=pt&date={date}&time={time}&mode={mode}&maxWalkDistance={max_walk_distance}&numItineraries={num_itineraries}"
 

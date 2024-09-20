@@ -74,10 +74,11 @@ def main():
             else:
                 # Single Polygon: Directly extract the coordinates
                 point_coords = coords
-            # Ensure point_coords has two values (lon, lat)
+            # Ensure point_coords has at least two values (lon, lat) and discard any extras
             if len(point_coords) >= 2:
+                lon, lat = point_coords[:2]  # Extract only the first two values (lon, lat)
                 polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
-                nearest_points.append(Point(point_coords[0], point_coords[1]))  # Create Point object
+                nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)

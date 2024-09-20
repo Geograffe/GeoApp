@@ -132,32 +132,66 @@ def main():
         else:
             st.write("No valid theme locations available for selection.")
 
-    # Route calculation after selecting the theme
-    if 'selected_lat_lng' in st.session_state:
-        selected_lat_lng = st.session_state['selected_lat_lng']
-        start = f"{st.session_state['lat']},{st.session_state['lon']}"
-        end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
+   # After selecting the theme, calculate route
+if 'selected_lat_lng' in st.session_state:
+    selected_lat_lng = st.session_state['selected_lat_lng']
+    start = f"{st.session_state['lat']},{st.session_state['lon']}"
+    end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
-        # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
-        if route_type == "pt":
-            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+    # Generate the route
+    if route_type == "pt":
+        route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
 
-            current_datetime = datetime.now()
-            date_str = current_datetime.strftime("%m-%d-%Y")
-            time_str = current_datetime.strftime("%H:%M:%S")
+        if route_data and "plan" in route_data:
+            plan = route_data["plan"]
+            itineraries = plan.get("itineraries", [])
+            
+            # Display transit details for the first itinerary
+            if itineraries:
+                st.subheader("Transit Details")
+                first_itinerary = itineraries[0]  # Pick the first itinerary
+                total_duration = first_itinerary.get("duration", 0) / 60  # Convert to minutes
+                total_fare = first_itinerary.get("fare", "Unknown")
+                st.write(f"Total Duration: {total_duration:.2f} minutes")
+                st.write(f"Total Fare: {total_fare} SGD")
 
-            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+                # Iterate through legs to display details of each transit leg
+                for leg in first_itinerary.get("legs", []):
+                    mode = leg.get("mode", "Unknown")
+                    start_time = datetime.fromtimestamp(leg.get("startTime", 0) / 1000).strftime("%H:%M")
+                    end_time = datetime.fromtimestamp(leg.get("endTime", 0) / 1000).strftime("%H:%M")
+                    distance = leg.get("distance", 0) / 1000  # Convert meters to kilometers
+
+                    if leg.get("transitLeg", False):
+                        route_name = leg.get("route", "Unknown")
+                        agency_name = leg.get("agencyName", "Unknown")
+                        st.write(f"Transit Mode: {mode}")
+                        st.write(f"Route: {route_name} ({agency_name})")
+                        st.write(f"Start: {start_time}, End: {end_time}")
+                        st.write(f"Distance: {distance:.2f} km")
+
+                    else:
+                        # If it's a walk or non-transit leg, handle differently
+                        st.write(f"Non-Transit Mode: {mode}")
+                        st.write(f"Start: {start_time}, End: {end_time}")
+                        st.write(f"Distance: {distance:.2f} km")
+
+                # Show route geometry on the map
+                if "route_geometry" in route_data:
+                    route_geometry = route_data["route_geometry"]
+                    create_map_with_features(st.session_state['lat'], st.session_state['lon'], st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+            else:
+                st.error("No itineraries found in the response.")
         else:
-            route_data = get_route(start, end, route_type)
+            st.error("Failed to generate route or route geometry missing.")
+    else:
+        route_data = get_route(start, end, route_type)
 
         if route_data and "route_geometry" in route_data:
             route_geometry = route_data["route_geometry"]
             create_map_with_features(st.session_state['lat'], st.session_state['lon'], st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
         else:
             st.error("Failed to generate route or route geometry missing.")
-
     # Restart button
     if st.button("Restart", key="restart_btn"):
         st.session_state.clear()

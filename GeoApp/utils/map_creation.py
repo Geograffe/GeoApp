@@ -71,7 +71,6 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
     append_theme_markers_to_map(m, theme_data)
     folium_static(m)
 
-
 def display_theme_locations(theme_data):
     import streamlit as st
     

@@ -1,14 +1,14 @@
 import streamlit as st
 import geopandas as gpd
-from shapely.geometry import box, Point
+from shapely.geometry import box
 import streamlit_js_eval as sje
 from datetime import datetime
 
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_route
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents
-from utils.map_creation import create_map_with_features, display_theme_locations
-from prompts.language_prompts import prompts, themes
+from utils.map_creation import create_map_with_features, display_theme_locations  # Import from map_creation
+from prompts.language_prompts import prompts, themes  # Ensure you import the correct prompts
 
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
@@ -40,12 +40,8 @@ def main():
         st.error(f"Error loading GeoJSON file: {e}")
         return
 
-    # Get dengue clusters and polygon data
     dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
-    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-
-    # Load nearby polygons and find nearest points to user location
-    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
@@ -53,6 +49,7 @@ def main():
     # Language selection logic
     if 'language' not in st.session_state:
         st.write("Please select your language:")
+
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
@@ -102,7 +99,7 @@ def main():
                     dengue_clusters = get_dengue_clusters_with_extents(extents)
 
                     extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-                    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
+                    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
 
                     theme_data = []
                     for theme in themes:

@@ -145,7 +145,7 @@ def main():
                     st.session_state['selected_coords'] = selected_lat_lng
                     st.write(f"Selected Theme Coordinates: {selected_lat_lng}")
 
-        # Route calculation after selecting the location
+    # Route calculation after selecting the location
     if 'selected_coords' in st.session_state:
         selected_lat_lng = st.session_state['selected_coords']
         start = f"{lat},{lon}"  # Use current geolocation as the start point
@@ -176,9 +176,7 @@ def main():
                 # Display the route on the map
                 route_geometry = public_transport_route['route_geometry']
                 if route_geometry:
-                    # Decode the polyline geometry
-                    decoded_route = polyline.decode(route_geometry)
-                    create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, decoded_route)
+                    create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
             else:
                 st.error("No valid public transport route found.")
         
@@ -189,8 +187,7 @@ def main():
 
             if general_route_data and "route_geometry" in general_route_data:
                 route_geometry = general_route_data["route_geometry"]
-                decoded_route = polyline.decode(route_geometry)  # Decode polyline
-                create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, decoded_route)
+                create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
 
                 if general_route_data and "route_summary" in general_route_data:
                     total_time_seconds = general_route_data["route_summary"]["total_time"]

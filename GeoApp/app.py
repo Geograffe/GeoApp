@@ -100,7 +100,10 @@ def main():
                         theme_data.extend(get_theme_data(theme, extents))
 
                     create_map_with_features(lat, lon, user_input, dengue_clusters, theme_data, polygon_data, user_location)
+
+                    # Display the theme locations
                     display_theme_locations(theme_data)
+
                 else:
                     st.error(prompts[st.session_state['language']]['error_message'])
 

@@ -70,80 +70,36 @@ def display_theme_locations(theme_data):
     
     st.subheader("Nearby Theme Locations")
 
-    # Step 1: Ensure the postal code is saved and does not restart the app
-    if "postal_code" not in st.session_state:
-        # You can replace this line with your postal code input logic
-        st.session_state.postal_code = st.text_input("Enter Postal Code", key="postal_code_input")
-        return  # Stop the app here to wait for postal code input
-
     if theme_data:
-        # Create a list of names for the radio button
-        locations = [
-            {
-                "name": theme.get('NAME', 'N/A'),
-                "description": theme.get('DESCRIPTION', 'N/A'),
-                "type": theme.get('THEMENAME', 'N/A'),
-                "address": f"{theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}",
-                "lat_lng_str": theme.get('LatLng', None),
-                "link": theme.get('HYPERLINK', '#')
-            }
-            for theme in theme_data if theme.get('NAME', 'N/A') != "N/A" and theme.get('NAME').strip()
-        ]
+        # Loop through theme_data and display relevant information
+        for theme in theme_data:
+            name = theme.get('NAME', 'N/A')
 
-        if not locations:
-            st.write("No valid theme locations found.")
-            return
-
-        # Step 2: Use session state to persist selected location across app refreshes
-        if "selected_location" not in st.session_state:
-            st.session_state.selected_location = locations[0]["name"]  # Set the first location as default
-
-        # Create a radio button for selecting a location and store the selection in session state
-        selected_location = st.radio(
-            "Select a Location:",
-            [loc["name"] for loc in locations],
-            index=[loc["name"] for loc in locations].index(st.session_state.selected_location),
-            key="selected_location"
-        )
-
-        # Step 3: Add a confirmation button for the selection and use session state to persist it
-        if "confirmed" not in st.session_state:
-            st.session_state.confirmed = False
-
-        if st.button("Confirm Selection"):
-            st.session_state.confirmed = True
-
-        # Step 4: If the user confirms the selection, display the details of the selected location
-        if st.session_state.confirmed:
-            st.write(f"**Selected Location**: {selected_location}")
-            st.write("---")
-
-            # Find and display the details of the selected location
-            for loc in locations:
-                if loc["name"] == selected_location:
-                    st.write(f"**Name**: {loc['name']}")
-                    st.write(f"**Type**: {loc['type']}")
-                    st.write(f"**Description**: {loc['description']}")
-                    st.write(f"**Address**: {loc['address']}")
-                    
-                    # Extract LatLng and display latitude and longitude
-                    lat_lng_str = loc["lat_lng_str"]
-                    if lat_lng_str:
-                        try:
-                            lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
-                            if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
-                                lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
-                                lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
-                                st.write(f"**Latitude**: {lat}")
-                                st.write(f"**Longitude**: {lng}")
-                            else:
-                                st.write("LatLng data is incomplete.")
-                        except ValueError as e:
-                            st.write(f"Error parsing LatLng: {e}")
-                    
-                    st.write(f"[Link]({loc['link']})")
-                    st.write("---")
-                    break
+            # Only display if the name is not "N/A" or empty
+            if name != "N/A" and name.strip():
+                st.write(f"**Name**: {name}")
+                st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
+                st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
+                st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
+                
+                # Extract LatLng and display latitude and longitude
+                lat_lng_str = theme.get('LatLng', None)
+                if lat_lng_str:
+                    try:
+                        lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
+                        if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
+                            lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
+                            lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
+                            st.write(f"**Latitude**: {lat}")
+                            st.write(f"**Longitude**: {lng}")
+                        else:
+                            st.write("LatLng data is incomplete.")
+                    except ValueError as e:
+                        st.write(f"Error parsing LatLng: {e}")
+                
+                st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
+                st.write("---")
     else:
         st.write("No theme locations found.")
+
 

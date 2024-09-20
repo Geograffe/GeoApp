@@ -28,7 +28,7 @@ def main():
         st.success(f"Location retrieved: Latitude {lat}, Longitude {lon}")
 
         # GeoJSON file path
-        file_path = './data/NParksParksandNatureReserves.geojson'
+        file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
         # Load the polygon data from the GeoJSON file   
         try:
             gdf = gpd.read_file(file_path)

@@ -48,8 +48,20 @@ def main():
     polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
 
     # Extract the names of the polygons and their nearest points
-    polygon_options = [polygon['description'] for polygon in polygon_data]
-    nearest_points = [Point(polygon['coordinates'][0][0]) for polygon in polygon_data]
+    polygon_options = []
+    nearest_points = []
+    
+    for polygon in polygon_data:
+        # Check if the coordinates are nested (e.g., multi-part polygons)
+        if isinstance(polygon['coordinates'][0], list):
+            # Handle multi-part polygons (e.g., lists of lists of coordinates)
+            nearest_point_coords = polygon['coordinates'][0][0]
+        else:
+            # Handle simple polygons
+            nearest_point_coords = polygon['coordinates'][0]
+
+        polygon_options.append(polygon['description'])
+        nearest_points.append(Point(nearest_point_coords[0], nearest_point_coords[1]))
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
@@ -168,6 +180,7 @@ def main():
                 route_geometry = route_data["route_geometry"]
                 create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
+                # Assuming `route_data` is retrieved successfully
                 if route_data and "route_summary" in route_data:
                     total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
                     total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters

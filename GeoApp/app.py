@@ -105,47 +105,57 @@ def main():
                     for theme in themes:
                         theme_data.extend(get_theme_data(theme, extents))
 
-                    # Select Route Type
-                    route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+                    # Save the theme data in the session state
+                    st.session_state['theme_data'] = theme_data
 
-                    # Public transport specific parameters
-                    if route_type == "pt":
-                        mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-                        max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+    # If theme data is available, continue with theme selection and routing
+    if 'theme_data' in st.session_state:
+        theme_data = st.session_state['theme_data']
 
-                        # Get the current date and time
-                        current_datetime = datetime.now()
-                        date_str = current_datetime.strftime("%m-%d-%Y")
-                        time_str = current_datetime.strftime("%H:%M:%S")
+        # Select Route Type
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
 
-                    else:
-                        mode = None
-                        max_walk_distance = None
-                        date_str = None
-                        time_str = None
+        # Public transport specific parameters
+        if route_type == "pt":
+            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
 
-                    # Display theme locations and allow user to select one
-                    selected_lat_lng = display_theme_locations(theme_data)
+            # Get the current date and time
+            current_datetime = datetime.now()
+            date_str = current_datetime.strftime("%m-%d-%Y")
+            time_str = current_datetime.strftime("%H:%M:%S")
 
-                    if selected_lat_lng:
-                        start = f"{lat},{lon}"
-                        end = selected_lat_lng
+        else:
+            mode = None
+            max_walk_distance = None
+            date_str = None
+            time_str = None
 
-                        # Generate the route
-                        if route_type == "pt":
-                            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
-                        else:
-                            route_data = get_route(start, end, route_type)
+        # Display theme locations and allow user to select one
+        selected_theme = st.selectbox("Select a Theme Location", options=[f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in theme_data], key="selected_theme")
 
-                        if route_data and "route_geometry" in route_data:
-                            route_geometry = route_data["route_geometry"]
-                            create_map_with_features(lat, lon, user_input, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
-                        else:
-                            st.error("Failed to generate route or route geometry missing.")
-                    else:
-                        st.error("No location selected.")
-                else:
-                    st.error(prompts[st.session_state['language']]['error_message'])
+        # Get the LatLng of the selected theme
+        if selected_theme:
+            selected_lat_lng = [float(coord) for coord in selected_theme.split('-')[-1].split(',')]
+            st.session_state['selected_lat_lng'] = selected_lat_lng
+
+    # After selecting the theme, calculate route
+    if 'selected_lat_lng' in st.session_state:
+        selected_lat_lng = st.session_state['selected_lat_lng']
+        start = f"{st.session_state['lat']},{st.session_state['lon']}"
+        end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
+
+        # Generate the route
+        if route_type == "pt":
+            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+        else:
+            route_data = get_route(start, end, route_type)
+
+        if route_data and "route_geometry" in route_data:
+            route_geometry = route_data["route_geometry"]
+            create_map_with_features(st.session_state['lat'], st.session_state['lon'], st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+        else:
+            st.error("Failed to generate route or route geometry missing.")
 
     # Restart button
     if st.button("Restart", key="restart_btn"):

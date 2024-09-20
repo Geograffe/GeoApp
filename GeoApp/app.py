@@ -16,8 +16,7 @@ st.title("Geolocation with iframe in Streamlit")
 
 def main():
     st.title("Interactive Geospatial App")
-
-    # Fetch geolocation data
+    
     geolocationData = sje.get_geolocation()
 
     # Check if geolocation data is available
@@ -28,12 +27,13 @@ def main():
         }
     else:
         st.error("Unable to retrieve geolocation data. Please enable location services in your browser.")
-        return  # Stop execution if geolocation is not available
+        return  # Stop the execution here if geolocation is not available
 
+    # Proceed only if user location is available
     lat, lon = user_location["latitude"], user_location["longitude"]
     st.success(f"Location retrieved: Latitude {lat}, Longitude {lon}")
 
-    # Load the polygon data (GeoJSON)
+    # GeoJSON file path
     file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
     try:
         gdf = gpd.read_file(file_path)
@@ -42,15 +42,16 @@ def main():
         return
 
     postal_code = "123456"  # Example postal code
-    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
+    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")  # Replace with your extents
+    theme_data = []  # Replace with your theme data
     polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
 
-    create_map_with_features(lat, lon, postal_code, dengue_clusters, [], polygon_data, user_location)
+    create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location)
 
     # Language selection logic
     if 'language' not in st.session_state:
         st.write("Please select your language:")
-
+        
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
@@ -79,15 +80,11 @@ def main():
                 latlon = get_latlon_from_postal(user_input)
                 if latlon:
                     lat, lon = latlon
-                    st.session_state["user_input"] = user_input
+                    st.session_state["user_input"] = user_input  # Save postal code input to session state
                     st.session_state["lat"] = lat
                     st.session_state["lon"] = lon
                     st.success(f"Location Found: Latitude {lat}, Longitude {lon}")
 
-                    # Display map immediately after finding the location
-                    create_map_with_features(lat, lon, postal_code, dengue_clusters, [], polygon_data, user_location)
-
-                    # Fetch weather data
                     weather_data = get_weather_data(lat, lon)
                     st.subheader("Current Weather Conditions")
                     if weather_data:
@@ -108,23 +105,45 @@ def main():
                     for theme in themes:
                         theme_data.extend(get_theme_data(theme, extents))
 
-                    # Save theme data in session state
+                    # Save the theme data in the session state
                     st.session_state['theme_data'] = theme_data
 
-    # Handle theme selection and routing
+    # If theme data is available, continue with theme selection and routing
     if 'theme_data' in st.session_state:
         theme_data = st.session_state['theme_data']
 
-        # Filter out themes with 'N/A' names
+        # Select Route Type
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+
+        # Public transport specific parameters
+        if route_type == "pt":
+            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+
+            # Get the current date and time
+            current_datetime = datetime.now()
+            date_str = current_datetime.strftime("%m-%d-%Y")
+            time_str = current_datetime.strftime("%H:%M:%S")
+
+        else:
+            mode = None
+            max_walk_distance = None
+            date_str = None
+            time_str = None
+
+        # Display theme locations and allow user to select one
         filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
 
         if filtered_theme_data:
+            # Create a list of display names with their corresponding lat-lng
             theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
 
-            # Use session state to hold the selected theme
+            # Select box for theme locations
             selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
 
+            # Ensure there is a valid selection and parse lat/lng
             if selected_theme:
+                # Extract the LatLng from the selected option
                 lat_lng_str = selected_theme.split('-')[-1].strip()
                 try:
                     selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
@@ -135,24 +154,21 @@ def main():
         else:
             st.write("No valid theme locations available for selection.")
 
-    # Route calculation after selecting the theme
+
+# Get the LatLng of the selected theme
+if selected_theme:
+    selected_lat_lng = [float(coord) for coord in selected_theme.split('-')[-1].split(',')]
+    st.session_state['selected_lat_lng'] = selected_lat_lng
+
+
+    # After selecting the theme, calculate route
     if 'selected_lat_lng' in st.session_state:
         selected_lat_lng = st.session_state['selected_lat_lng']
         start = f"{st.session_state['lat']},{st.session_state['lon']}"
         end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
-        # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
-
-        # Ensure route_type is handled before proceeding
+        # Generate the route
         if route_type == "pt":
-            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
-
-            current_datetime = datetime.now()
-            date_str = current_datetime.strftime("%m-%d-%Y")
-            time_str = current_datetime.strftime("%H:%M:%S")
-
             route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
         else:
             route_data = get_route(start, end, route_type)

@@ -12,11 +12,9 @@ from utils.map_creation import create_map_with_features, display_theme_locations
 from prompts.language_prompts import prompts, themes
 
 # Title for the Streamlit app
-st.title("Geolocation with iframe in Streamlit")
+st.title("Jalan Jalan")
 
 def main():
-    st.title("Interactive Geospatial App")
-
     # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()
 
@@ -152,10 +150,10 @@ def main():
         end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
         # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="route_type")
         
         # Handle public transport route
-        if route_type == "pt":
+        if route_type == "public transport":
             mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
             max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
             
@@ -210,7 +208,7 @@ def main():
             if st.button("Return Home", key="return_home_btn"):
                 start = f"{lat},{lon}"  # Current location
                 end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
-                route_type = "drive"
+                route_type = "public transport"
                 route_data = get_general_route(start, end, route_type)
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]

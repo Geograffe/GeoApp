@@ -5,7 +5,8 @@ import streamlit_js_eval as sje
 from datetime import datetime
 import re
 
-from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_route
+# Import the two functions from api.onemap
+from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_general_route, get_public_transport_route
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents, extract_name_from_description 
 from utils.map_creation import create_map_with_features, display_theme_locations
@@ -153,34 +154,49 @@ def main():
 
         # Select route type
         route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+        
+        # Handle public transport route
         if route_type == "pt":
             mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
             max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
-
+            
             current_datetime = datetime.now()
             date_str = current_datetime.strftime("%m-%d-%Y")
             time_str = current_datetime.strftime("%H:%M:%S")
+            
+            # Call the function for public transport route
+            public_transport_route = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
 
-            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+            if public_transport_route:
+                st.write(f"**Fare**: {public_transport_route['fare']}")
+                st.write(f"**Total Duration**: {public_transport_route['total_duration']} minutes")
+                st.subheader("Transit Details")
+                for transit in public_transport_route['transit_details']:
+                    st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
+            else:
+                st.error("No valid public transport route found.")
+        
+        # Handle general route (walk, drive, cycle)
         else:
-            route_data = get_route(start, end, route_type)
+            # Call the function for general routes
+            general_route_data = get_general_route(start, end, route_type)
 
-        if route_data and "route_geometry" in route_data:
-            route_geometry = route_data["route_geometry"]
-            create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
+            if general_route_data and "route_geometry" in general_route_data:
+                route_geometry = general_route_data["route_geometry"]
+                create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
 
-            if route_data and "route_summary" in route_data:
-                total_time_seconds = route_data["route_summary"]["total_time"]
-                total_distance_meters = route_data["route_summary"]["total_distance"]
-                total_minutes = total_time_seconds // 60
-                hours = total_minutes // 60
-                minutes = total_minutes % 60
-                time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
-                total_distance_km = total_distance_meters / 1000
-                st.write(f"**Total Time**: {time_str}")
-                st.write(f"**Total Distance**: {total_distance_km:.2f} km")
-        else:
-            st.error("Failed to generate route or route geometry missing.")
+                if general_route_data and "route_summary" in general_route_data:
+                    total_time_seconds = general_route_data["route_summary"]["total_time"]
+                    total_distance_meters = general_route_data["route_summary"]["total_distance"]
+                    total_minutes = total_time_seconds // 60
+                    hours = total_minutes // 60
+                    minutes = total_minutes % 60
+                    time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
+                    total_distance_km = total_distance_meters / 1000
+                    st.write(f"**Total Time**: {time_str}")
+                    st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+            else:
+                st.error("Failed to generate route or route geometry missing.")
 
     # Return Home and Restart buttons
     col1, col2 = st.columns([1, 1])
@@ -191,7 +207,7 @@ def main():
                 start = f"{lat},{lon}"  # Current location
                 end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
                 route_type = "drive"
-                route_data = get_route(start, end, route_type)
+                route_data = get_general_route(start, end, route_type)
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]
                     create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)

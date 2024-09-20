@@ -47,21 +47,56 @@ def get_theme_data(query_name, extents):
         return []
     
 
-def get_route(start, end, route_type, mode=None, date=None, time=None, max_walk_distance=None):
+# Function to handle walking, driving, cycling routes
+def get_general_route(start, end, route_type):
     url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType={route_type}"
-    
-    if route_type == "pt":
-        # Add parameters for public transport (pt)
-        url += f"&mode={mode}&date={date}&time={time}"
-        if max_walk_distance:
-            url += f"&maxWalkDistance={max_walk_distance}"
 
-    headers = {"Authorization": f"Bearer {access_token}"}  # Add your valid access token here
-    
+    headers = {"Authorization": f"Bearer {access_token}"}
+
     response = requests.get(url, headers=headers)
     
     if response.status_code == 200:
         return response.json()
     else:
-        st.error(f"Failed to retrieve route. Status Code: {response.status_code}")
+        st.error(f"Failed to retrieve {route_type} route. Status Code: {response.status_code}")
         return None
+
+# Function to handle public transport routes
+def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1000, num_itineraries=1):
+    url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType=pt&date={date}&time={time}&mode={mode}&maxWalkDistance={max_walk_distance}&numItineraries={num_itineraries}"
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        st.error(f"Failed to retrieve public transport route. Status Code: {response.status_code}")
+        return None
+
+    data = response.json()
+    
+    if "plan" not in data or "itineraries" not in data["plan"]:
+        st.error("No valid public transport routes found.")
+        return None
+    
+    itinerary = data["plan"]["itineraries"][0]  # First itinerary
+    fare = itinerary.get("fare", "N/A")  # Get fare if available
+    
+    # Process legs of the trip to extract bus and train details
+    transit_details = []
+    for leg in itinerary["legs"]:
+        if leg["transitLeg"]:  # Check if it's a transit leg (bus/train)
+            mode = leg["mode"]
+            route = leg.get("route", "")
+            agency = leg.get("agencyName", "")
+            transit_details.append({
+                "mode": mode,
+                "route": route,
+                "agency": agency
+            })
+
+    return {
+        "fare": fare,
+        "transit_details": transit_details,
+        "total_duration": itinerary["duration"] // 60  # Convert seconds to minutes
+    }

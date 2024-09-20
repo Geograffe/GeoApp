@@ -48,18 +48,19 @@ def main():
     park_polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
 
     # Extract the names of the parks and their nearest points
-    park_options = [park['description'] for park in park_polygon_data]
-    park_nearest_points = [Point(park['coordinates'][0][0]) for park in park_polygon_data]
+    park_options = []
+    park_nearest_points = []
 
-    # Fetch amenities using theme_data
-    theme_data = []
-    extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
-    for theme in themes:
-        theme_data.extend(get_theme_data(theme, extents))
-
-    # Filter out amenities with valid names
-    amenity_options = [f"{amenity.get('NAME', 'Unknown')} - {amenity.get('LatLng', 'N/A')}" for amenity in theme_data if amenity.get('NAME', '').strip()]
-    amenity_nearest_points = [eval(amenity.get('LatLng')) for amenity in theme_data if amenity.get('LatLng', '')]
+    for park in park_polygon_data:
+        if isinstance(park['coordinates'][0], list):  # Ensure the coordinates are a list of tuples
+            # Check if it's a list of lists (for multi-polygons)
+            if isinstance(park['coordinates'][0][0], (list, tuple)):
+                # Get the first coordinate of the first polygon part
+                point_coords = park['coordinates'][0][0]
+            else:
+                point_coords = park['coordinates'][0]
+            park_options.append(park['description'])
+            park_nearest_points.append(Point(point_coords[0], point_coords[1]))
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], park_polygon_data, user_location)

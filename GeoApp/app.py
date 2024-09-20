@@ -60,11 +60,8 @@ def main():
     park_polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
 
     # Extract the names of the polygons and their nearest points
-    polygon_options = []
-    nearest_points = []
-
     for polygon in polygon_data:
-        # Ensure 'coordinates' key exists and is structured as expected
+    # Ensure 'coordinates' key exists and is structured as expected
         if 'coordinates' in polygon and isinstance(polygon['coordinates'], list):
             coords = polygon['coordinates']
             # Check for multi-polygon structure (a list of lists)
@@ -79,6 +76,7 @@ def main():
                 lon, lat = point_coords[:2]  # Extract only lon and lat
                 polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
                 nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
+
 
 
     # Display map with current location

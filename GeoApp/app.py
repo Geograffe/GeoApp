@@ -70,10 +70,8 @@ def main():
         # Use the selected language for prompts
         lang_prompts = prompts[st.session_state['language']]
         st.success(f"Selected Language: {st.session_state['language']}")
-        prompt_text = lang_prompts['prompt']  # Use the correct prompt from language file
-        st.write(prompt_text)
 
-        # Input postal code to set as the return/home point
+        # Input postal code to set as the return/home point, display only once
         user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))  # Ensure prompt comes from language file
 
         if st.button(lang_prompts['enter_button'], key="enter_btn"):
@@ -121,7 +119,7 @@ def main():
             theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
 
             # Use session state to hold the selected theme
-            selected_theme = st.selectbox(lang_prompts["prompt"], theme_options, key="selected_theme")
+            selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
 
             if selected_theme:
                 lat_lng_str = selected_theme.split('-')[-1].strip()
@@ -160,15 +158,10 @@ def main():
         else:
             st.error("Failed to generate route or route geometry missing.")
 
-    # Restart and Return Home buttons
+    # Return Home and Restart buttons
     col1, col2 = st.columns([1, 1])
 
     with col1:
-        if st.button("Restart", key="restart_btn"):
-            st.session_state.clear()
-            st.rerun()
-
-    with col2:
         if "home_lat" in st.session_state and "home_lon" in st.session_state:
             if st.button("Return Home", key="return_home_btn"):
                 # Set the current location as the start and home location as the end
@@ -183,6 +176,11 @@ def main():
                     create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
                 else:
                     st.error("Failed to generate return home route.")
+
+    with col2:
+        if st.button("Restart", key="restart_btn"):
+            st.session_state.clear()
+            st.rerun()
 
 # Run the Streamlit app
 if __name__ == "__main__":

@@ -70,25 +70,32 @@ def display_theme_locations(theme_data):
     st.subheader("Nearby Theme Locations")
     if theme_data:
         for theme in theme_data:
-            st.write(f"**Name**: {theme.get('NAME', 'N/A')}")
-            st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
-            st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
-            st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
-            # Extract LatLng and display latitude and longitude
-            lat_lng_str = theme.get('LatLng', None)
-            if lat_lng_str:
-                try:
-                    lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
-                    if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
-                        lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
-                        lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
-                        st.write(f"**Latitude**: {lat}")
-                        st.write(f"**Longitude**: {lng}")
-                    else:
-                        st.write("LatLng data is incomplete.")
-                except ValueError as e:
-                    st.write(f"Error parsing LatLng: {e}")
-            st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
-            st.write("---")
+            name = theme.get('NAME', 'N/A')
+
+            # Only display if the name is not "N/A" or empty
+            if name != "N/A" and name.strip():
+                st.write(f"**Name**: {name}")
+                st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
+                st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
+                st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
+                
+                # Extract LatLng and display latitude and longitude
+                lat_lng_str = theme.get('LatLng', None)
+                if lat_lng_str:
+                    try:
+                        lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
+                        if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
+                            lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
+                            lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
+                            st.write(f"**Latitude**: {lat}")
+                            st.write(f"**Longitude**: {lng}")
+                        else:
+                            st.write("LatLng data is incomplete.")
+                    except ValueError as e:
+                        st.write(f"Error parsing LatLng: {e}")
+                
+                st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
+                st.write("---")
     else:
         st.write("No theme locations found.")
+

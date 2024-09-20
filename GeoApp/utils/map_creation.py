@@ -29,23 +29,18 @@ def append_theme_markers_to_map(map_object, theme_data):
                     print(f"Error evaluating LatLng for theme: {theme}")
 
 def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location=None, route_geometry=None):
-    # Initialize the map
     m = folium.Map(location=[lat, lon], zoom_start=15)
-    
-    # Add marker for current location
     folium.Marker([lat, lon], popup=f"Postal Code: {postal_code}").add_to(m)
-
-    # Add marker for user's location if available
+    
     if user_location:
         folium.Marker([user_location['latitude'], user_location['longitude']],
                       popup="Your Location", icon=folium.Icon(color="blue")).add_to(m)
 
-    # Display the decoded route on the map if provided
+    # Decode and display the route on the map
     if route_geometry:
-        # Since the route is already decoded, no need to decode it again
-        folium.PolyLine(locations=route_geometry, color="blue", weight=5).add_to(m)
+        decoded_route = polyline.decode(route_geometry)
+        folium.PolyLine(locations=[(lat, lon) for lat, lon in decoded_route], color="blue", weight=5).add_to(m)
 
-    # Add dengue clusters as polygons
     if dengue_clusters:
         for cluster in dengue_clusters:
             if "LatLng" in cluster and isinstance(cluster["LatLng"], str):
@@ -58,26 +53,23 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
                     popup=f"Dengue Cluster: {cluster['DESCRIPTION']}, Cases: {cluster['CASE_SIZE']}"
                 ).add_to(m)
 
-    # Add polygons (e.g., parks and nature reserves)
     for polygon in polygon_data:
-        if isinstance(polygon['coordinates'][0], list):  # MultiPolygon
+        # Ensure the coordinates are correctly nested
+        if isinstance(polygon['coordinates'][0], list):  # For MultiPolygon
             for sub_polygon in polygon['coordinates']:
                 folium.Polygon(
                     locations=[(coord[1], coord[0]) for coord in sub_polygon],
                     color='green', fill=True, fill_opacity=0.5,
                     popup=polygon['description']
                 ).add_to(m)
-        else:  # Polygon
+        else:  # For Polygon
             folium.Polygon(
                 locations=[(coord[1], coord[0]) for coord in polygon['coordinates']],
                 color='green', fill=True, fill_opacity=0.5,
                 popup=polygon['description']
             ).add_to(m)
 
-    # Add theme markers to the map
     append_theme_markers_to_map(m, theme_data)
-
-    # Display the map
     folium_static(m)
 
 

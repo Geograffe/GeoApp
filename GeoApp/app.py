@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 import geopandas as gpd
 from shapely.geometry import box
 import streamlit_js_eval as sje
@@ -172,7 +172,13 @@ def main():
                 st.subheader("Transit Details")
                 for transit in public_transport_route['transit_details']:
                     st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
-
+                
+                # Display the route on the map
+                route_geometry = public_transport_route['route_geometry']
+                if route_geometry:
+                    create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
+            else:
+                st.error("No valid public transport route found.")
         
         # Handle general route (walk, drive, cycle)
         else:

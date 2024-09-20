@@ -132,12 +132,20 @@ def main():
             time_str = None
 
         # Display theme locations and allow user to select one
-        selected_theme = st.selectbox("Select a Theme Location", options=[f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in theme_data], key="selected_theme")
+        filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
 
-        # Get the LatLng of the selected theme
-        if selected_theme:
-            selected_lat_lng = [float(coord) for coord in selected_theme.split('-')[-1].split(',')]
-            st.session_state['selected_lat_lng'] = selected_lat_lng
+        # Only show valid theme names for selection
+        selected_theme = st.selectbox(
+            "Select a Theme Location", 
+            options=[f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data], 
+            key="selected_theme"
+        )
+
+# Get the LatLng of the selected theme
+if selected_theme:
+    selected_lat_lng = [float(coord) for coord in selected_theme.split('-')[-1].split(',')]
+    st.session_state['selected_lat_lng'] = selected_lat_lng
+
 
     # After selecting the theme, calculate route
     if 'selected_lat_lng' in st.session_state:

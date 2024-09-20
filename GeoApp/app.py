@@ -134,12 +134,23 @@ def main():
         # Display theme locations and allow user to select one
         filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
 
-        # Only show valid theme names for selection
-        selected_theme = st.selectbox(
-            "Select a Theme Location", 
-            options=[f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data], 
-            key="selected_theme"
-        )
+        if filtered_theme_data:
+            # Create a list of display names with their corresponding lat-lng
+            theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
+
+            # Select box for theme locations
+            selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
+
+            # Ensure there is a valid selection and parse lat/lng
+            if selected_theme:
+                lat_lng_str = selected_theme.split('-')[-1].strip()
+                try:
+                    selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
+                    st.session_state['selected_lat_lng'] = selected_lat_lng
+                except ValueError:
+                    st.error("Failed to parse the selected location's coordinates.")
+        else:
+            st.write("No valid theme locations available for selection.")
 
 # Get the LatLng of the selected theme
 if selected_theme:

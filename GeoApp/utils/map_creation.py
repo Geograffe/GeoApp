@@ -2,17 +2,29 @@ import folium
 from streamlit_folium import folium_static
 
 def append_theme_markers_to_map(map_object, theme_data):
+    # Initialize marker cluster for better management of many markers
+    marker_cluster = MarkerCluster().add_to(map_object)
+
     if theme_data:
         for theme in theme_data:
             if "LatLng" in theme and isinstance(theme["LatLng"], str):
-                lat_lng_list = eval(theme["LatLng"])
-                if isinstance(lat_lng_list, list) and len(lat_lng_list) > 0:
-                    lat_lng = lat_lng_list[0]
-                    folium.Marker(
-                        location=[lat_lng[1], lat_lng[0]], 
-                        popup=f"{theme['DESCRIPTION']}",
-                        icon=folium.Icon(color="green", icon="info-sign")
-                    ).add_to(map_object)
+                try:
+                    lat_lng_list = eval(theme["LatLng"])
+                    if isinstance(lat_lng_list, list) and len(lat_lng_list) > 0:
+                        lat_lng = lat_lng_list[0]
+                        
+                        # Ensure lat_lng contains valid coordinates
+                        if len(lat_lng) == 2 and all(isinstance(coord, (int, float)) for coord in lat_lng):
+                            folium.Marker(
+                                location=[lat_lng[1], lat_lng[0]], 
+                                popup=folium.Popup(f"<b>Description:</b> {theme['DESCRIPTION']}", max_width=300),
+                                icon=folium.Icon(color="red", icon="info-sign"),  # More vibrant color
+                                tooltip=f"Click for more info"
+                            ).add_to(marker_cluster)
+                        else:
+                            print(f"Invalid lat_lng format for theme: {theme}")
+                except (SyntaxError, ValueError):
+                    print(f"Error evaluating LatLng for theme: {theme}")
 
 def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location=None):
     m = folium.Map(location=[lat, lon], zoom_start=15)

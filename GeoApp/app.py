@@ -71,18 +71,16 @@ def main():
             # Check for multi-polygon structure (a list of lists)
             if isinstance(coords[0], list):
                 # MultiPolygon: Extract the first point of the first polygon part
-                point_coords = coords[0][0][:2]  # Extract only lon, lat
+                point_coords = coords[0][0]
             else:
                 # Single Polygon: Directly extract the coordinates
-                point_coords = coords[:2]  # Ensure only lon, lat are passed
-            # Ensure point_coords has at least two values (lon, lat)
-            if len(point_coords) == 2:
-                lon, lat = point_coords  # Unpack only lon and lat
+                point_coords = coords
+
+            # Ensure point_coords has at least two values (lon, lat), ignore extra dimensions
+            if len(point_coords) >= 2:
+                lon, lat = point_coords[:2]  # Extract only lon and lat, ignore extra values like elevation (3rd dimension)
                 polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
                 nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
-
-
-
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)

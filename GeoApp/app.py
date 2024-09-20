@@ -2,24 +2,17 @@ import streamlit as st
 import geopandas as gpd
 from shapely.geometry import box
 import streamlit_js_eval as sje
-import re
 from datetime import datetime
+import re
 
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_route
 from api.openweathermap import get_weather_data
-from utils.data_processing import load_polygons_from_geojson_within_extents
+from utils.data_processing import load_polygons_from_geojson_within_extents, extract_name_from_description 
 from utils.map_creation import create_map_with_features, display_theme_locations
 from prompts.language_prompts import prompts, themes
 
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
-
-def extract_name_from_description(description):
-    """Extract NAME value from the HTML description."""
-    name_match = re.search(r'<th>NAME<\/th> <td>([^<]+)<\/td>', description)
-    if name_match:
-        return name_match.group(1)
-    return "Unknown Park"
 
 def main():
     st.title("Interactive Geospatial App")
@@ -44,17 +37,18 @@ def main():
     file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
     try:
         gdf = gpd.read_file(file_path)
-        # Extract park names from description
-        gdf['name'] = gdf['description'].apply(extract_name_from_description)
     except Exception as e:
         st.error(f"Error loading GeoJSON file: {e}")
         return
 
-    extents_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-    polygon_data = load_polygons_from_geojson_within_extents(gdf, extents_polygon)
+    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
 
-    # Display map with current location
-    create_map_with_features(lat, lon, "Current Location", [], [], polygon_data, user_location)
+    # Extract park names from the description in GeoJSON
+    gdf['park_names'] = gdf['Description'].apply(extract_name_from_description)
+
+    # Display map with current location and dengue clusters
+    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
 
     # Language selection logic
     if 'language' not in st.session_state:
@@ -105,107 +99,113 @@ def main():
                         st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
                         st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
 
-    # Park or Theme Location Selection
-    st.subheader("Choose a type of location to navigate to:")
-    location_type = st.radio("Select Location Type:", ["Parks", "Theme Locations"])
+                    extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
+                    dengue_clusters = get_dengue_clusters_with_extents(extents)
 
-    # Load theme locations if selected
-    theme_locations = []
-    if location_type == "Theme Locations":
-        theme_locations = get_theme_data()
-        display_theme_locations(theme_locations, user_location)
+                    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
+                    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
 
-    # Location selection and routing
-    if location_type == "Parks" and polygon_data:
-        park_options = [f"{park['name']}" for park in polygon_data]
+                    theme_data = []
+                    for theme in themes:
+                        theme_data.extend(get_theme_data(theme, extents))
 
-        selected_park = st.selectbox("Select a Park", park_options, key="selected_park")
+                    # Save theme data in session state
+                    st.session_state['theme_data'] = theme_data
 
-        if selected_park:
-            selected_park_data = next((park for park in polygon_data if park['name'] == selected_park), None)
-            if selected_park_data:
-                park_lat, park_lon = selected_park_data['centroid']
-                st.session_state['selected_park_coords'] = (park_lat, park_lon)
+    # Dropdown for selecting between Parks and Theme locations
+    if 'theme_data' in st.session_state:
+        location_type = st.selectbox("Choose Location Type", ["Parks", "Theme Locations"])
+
+        # Dropdown logic for parks
+        if location_type == "Parks":
+            park_options = [name for name in gdf['park_names'] if name]
+            selected_park = st.selectbox("Select a Park", park_options, key="selected_park")
+            if selected_park:
+                selected_park_data = gdf[gdf['park_names'] == selected_park].iloc[0]
+                park_lat, park_lon = selected_park_data.geometry.centroid.y, selected_park_data.geometry.centroid.x
+                st.session_state['selected_coords'] = (park_lat, park_lon)
                 st.write(f"Selected Park Coordinates: Latitude {park_lat}, Longitude {park_lon}")
-    elif location_type == "Theme Locations" and theme_locations:
-        theme_options = [f"{theme['name']}" for theme in theme_locations]
 
-        selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
+        # Dropdown logic for theme locations
+        elif location_type == "Theme Locations":
+            theme_data = st.session_state['theme_data']
+            filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
+            if filtered_theme_data:
+                theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
+                selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
+                if selected_theme:
+                    lat_lng_str = selected_theme.split('-')[-1].strip()
+                    selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
+                    st.session_state['selected_coords'] = selected_lat_lng
+                    st.write(f"Selected Theme Coordinates: {selected_lat_lng}")
 
-        if selected_theme:
-            selected_theme_data = next((theme for theme in theme_locations if theme['name'] == selected_theme), None)
-            if selected_theme_data:
-                theme_lat, theme_lon = selected_theme_data['coords']
-                st.session_state['selected_theme_coords'] = (theme_lat, theme_lon)
-                st.write(f"Selected Theme Location Coordinates: Latitude {theme_lat}, Longitude {theme_lon}")
-
-    # Route calculation after selecting the park or theme location
-    if 'selected_park_coords' in st.session_state:
-        destination_coords = st.session_state['selected_park_coords']
-    elif 'selected_theme_coords' in st.session_state:
-        destination_coords = st.session_state['selected_theme_coords']
-    else:
-        destination_coords = None
-
-    if destination_coords:
-        dest_lat, dest_lon = destination_coords
+    # Route calculation after selecting the location
+    if 'selected_coords' in st.session_state:
+        selected_lat_lng = st.session_state['selected_coords']
         start = f"{lat},{lon}"  # Use current geolocation as the start point
-        end = f"{dest_lat},{dest_lon}"
+        end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
         # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle"], key="route_type")
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+        if route_type == "pt":
+            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
 
-        route_data = get_route(start, end, route_type)
+            current_datetime = datetime.now()
+            date_str = current_datetime.strftime("%m-%d-%Y")
+            time_str = current_datetime.strftime("%H:%M:%S")
+
+            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+        else:
+            route_data = get_route(start, end, route_type)
 
         if route_data and "route_geometry" in route_data:
             route_geometry = route_data["route_geometry"]
-            create_map_with_features(lat, lon, "Current Location", [], [], polygon_data, user_location, route_geometry)
-            
-            if route_data and "route_summary" in route_data:
-                total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
-                total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters
+            create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
-                # Convert time to minutes and hours
+            if route_data and "route_summary" in route_data:
+                total_time_seconds = route_data["route_summary"]["total_time"]
+                total_distance_meters = route_data["route_summary"]["total_distance"]
                 total_minutes = total_time_seconds // 60
                 hours = total_minutes // 60
                 minutes = total_minutes % 60
-
-                if hours > 0:
-                    time_str = f"{hours} hours {minutes} minutes"
-                else:
-                    time_str = f"{minutes} minutes"
-
-                # Convert distance to kilometers
+                time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
                 total_distance_km = total_distance_meters / 1000
-
-                # Display the total time and distance
                 st.write(f"**Total Time**: {time_str}")
                 st.write(f"**Total Distance**: {total_distance_km:.2f} km")
         else:
             st.error("Failed to generate route or route geometry missing.")
 
     # Return Home and Restart buttons
-    if st.button("Return Home", key="return_home_btn"):
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
         if "home_lat" in st.session_state and "home_lon" in st.session_state:
-            home_lat = st.session_state["home_lat"]
-            home_lon = st.session_state["home_lon"]
-            home_coords = (home_lat, home_lon)
-            start = f"{lat},{lon}"
-            end = f"{home_lat},{home_lon}"
+            if st.button("Return Home", key="return_home_btn"):
+                start = f"{lat},{lon}"  # Current location
+                end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
+                route_type = "drive"
+                route_data = get_route(start, end, route_type)
+                if route_data and "route_geometry" in route_data:
+                    route_geometry = route_data["route_geometry"]
+                    create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                    if route_data and "route_summary" in route_data:
+                        total_time_seconds = route_data["route_summary"]["total_time"]
+                        total_distance_meters = route_data["route_summary"]["total_distance"]
+                        total_minutes = total_time_seconds // 60
+                        hours = total_minutes // 60
+                        minutes = total_minutes % 60
+                        time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
+                        total_distance_km = total_distance_meters / 1000
+                        st.write(f"**Return Home Time**: {time_str}")
+                        st.write(f"**Return Home Distance**: {total_distance_km:.2f} km")
+                else:
+                    st.error("Failed to generate return home route.")
 
-            route_data = get_route(start, end, "walk")
-
-            if route_data and "route_geometry" in route_data:
-                route_geometry = route_data["route_geometry"]
-                create_map_with_features(lat, lon, "Current Location", [], [], polygon_data, user_location, route_geometry)
-            else:
-                st.error("Failed to generate route home.")
-
-    if st.button("Restart App", key="restart_btn"):
-        # Clear session state
-        for key in st.session_state.keys():
-            del st.session_state[key]
-        st.experimental_rerun()
+    with col2:
+        if st.button("Restart", key="restart_btn"):
+            st.session_state.clear()
+            st.rerun()
 
 if __name__ == "__main__":
     main()

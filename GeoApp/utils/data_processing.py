@@ -16,3 +16,9 @@ def load_polygons_from_geojson_within_extents(gdf, extents_polygon):
                     'centroid': (centroid.y, centroid.x)  # (lat, lon)
                 })
     return polygons
+
+def extract_name_from_description(description):
+    """Extract the NAME from the GeoJSON description."""
+    import re
+    match = re.search(r"<th>NAME<\/th>\s*<td>(.*?)<\/td>", description)
+    return match.group(1) if match else None

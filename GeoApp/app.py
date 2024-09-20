@@ -208,23 +208,33 @@ def main():
             if st.button("Return Home", key="return_home_btn"):
                 start = f"{lat},{lon}"  # Current location
                 end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
+
+                # Public transport parameters
                 route_type = "public transport"
-                route_data = get_general_route(start, end, route_type)
+                mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
+                max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
+                date_str = datetime.now().strftime("%m-%d-%Y")
+                time_str = datetime.now().strftime("%H:%M:%S")
+
+                # Retrieve public transport route to home
+                route_data = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
+                
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]
-                    create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
-                    if route_data and "route_summary" in route_data:
-                        total_time_seconds = route_data["route_summary"]["total_time"]
-                        total_distance_meters = route_data["route_summary"]["total_distance"]
-                        total_minutes = total_time_seconds // 60
+                    create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry, route_type="public")
+
+                    # Display additional information about the route
+                    if "total_duration" in route_data:
+                        total_minutes = route_data["total_duration"]
                         hours = total_minutes // 60
                         minutes = total_minutes % 60
                         time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
-                        total_distance_km = total_distance_meters / 1000
                         st.write(f"**Return Home Time**: {time_str}")
-                        st.write(f"**Return Home Distance**: {total_distance_km:.2f} km")
+                    
+                    st.write(f"**Fare**: {route_data.get('fare', 'N/A')}")
                 else:
-                    st.error("Failed to generate return home route.")
+                    st.error("Failed to generate return home route using public transport.")
+
 
     with col2:
         if st.button("Restart", key="restart_btn"):

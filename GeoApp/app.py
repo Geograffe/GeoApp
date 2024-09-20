@@ -182,12 +182,28 @@ def main():
                     route_geometry = route_data["route_geometry"]
                     create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
-                    # Extract and display the total time and distance for return route
-                    if "route_summary" in route_data:
-                        total_time = route_data["route_summary"]["total_time"]
-                        total_distance = route_data["route_summary"]["total_distance"]
-                        st.write(f"**Total Time**: {total_time} minutes")
-                        st.write(f"**Total Distance**: {total_distance} meters")
+                    # Assuming `route_data` is retrieved successfully
+                    if route_data and "route_summary" in route_data:
+                        total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
+                        total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters
+
+                        # Convert time to minutes and hours
+                        total_minutes = total_time_seconds // 60
+                        hours = total_minutes // 60
+                        minutes = total_minutes % 60
+
+                        if hours > 0:
+                            time_str = f"{hours} hours {minutes} minutes"
+                        else:
+                            time_str = f"{minutes} minutes"
+
+                        # Convert distance to kilometers
+                        total_distance_km = total_distance_meters / 1000
+
+                        # Display the total time and distance
+                        st.write(f"**Total Time**: {time_str}")
+                        st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+
                 else:
                     st.error("Failed to generate return home route.")
 

@@ -73,13 +73,16 @@ def main():
         prompt_text = prompts[st.session_state['language']]['prompt']
         st.write(prompt_text)
 
-        user_input = st.text_input("Postal Code:")
+        user_input = st.text_input("Postal Code:", value=st.session_state.get("user_input", ""))
 
         if st.button(prompts[st.session_state['language']]['enter_button'], key="enter_btn"):
             if user_input:
                 latlon = get_latlon_from_postal(user_input)
                 if latlon:
                     lat, lon = latlon
+                    st.session_state["user_input"] = user_input  # Save postal code input to session state
+                    st.session_state["lat"] = lat
+                    st.session_state["lon"] = lon
                     st.success(f"Location Found: Latitude {lat}, Longitude {lon}")
 
                     weather_data = get_weather_data(lat, lon)
@@ -103,20 +106,23 @@ def main():
                         theme_data.extend(get_theme_data(theme, extents))
 
                     # Select Route Type
-                    route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"])
-                    
+                    route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+
                     # For public transport, ask for additional parameters
                     if route_type == "pt":
-                        mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"])
-                        max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000)
-                        date = st.date_input("Select Travel Date", datetime.now())
-                        time = st.time_input("Select Travel Time", datetime.now())
+                        mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+                        max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+                        date = st.date_input("Select Travel Date", datetime.now(), key="date")
+                        time = st.time_input("Select Travel Time", datetime.now(), key="time")
 
+                        # Ensure date and time are properly formatted
+                        date_str = date.strftime("%m-%d-%Y") if date else None
+                        time_str = time.strftime("%H:%M:%S") if time else None
                     else:
                         mode = None
                         max_walk_distance = None
-                        date = None
-                        time = None
+                        date_str = None
+                        time_str = None
 
                     # Display the theme locations and return the lat-lng of the selected location
                     selected_lat_lng = display_theme_locations(theme_data)
@@ -125,13 +131,17 @@ def main():
                         start = f"{lat},{lon}"
                         end = selected_lat_lng
 
-                        route_data = get_route(start, end, route_type, mode, date.strftime("%m-%d-%Y"), time.strftime("%H:%M:%S"), max_walk_distance)
+                        try:
+                            # Only generate route if a destination is selected
+                            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
 
-                        if route_data and "route_geometry" in route_data:
-                            route_geometry = route_data["route_geometry"]
-                            create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
-                        else:
-                            st.error("No route found for the selected location.")
+                            if route_data and "route_geometry" in route_data:
+                                route_geometry = route_data["route_geometry"]
+                                create_map_with_features(lat, lon, user_input, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                            else:
+                                raise ValueError("Route data missing or invalid.")
+                        except Exception as e:
+                            st.error(f"Failed to generate route: {str(e)}")
                     else:
                         st.error("No location selected.")
                 else:

@@ -172,13 +172,6 @@ def main():
                 st.subheader("Transit Details")
                 for transit in public_transport_route['transit_details']:
                     st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
-                
-                # Display the route on the map
-                decoded_route = public_transport_route['route_geometry']
-                if decoded_route:
-                    create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, decoded_route)
-            else:
-                st.error("No valid public transport route found.")
 
         
         # Handle general route (walk, drive, cycle)

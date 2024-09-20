@@ -62,23 +62,25 @@ def main():
     # Extract the names of the polygons and their nearest points
     polygon_options = []
     nearest_points = []
-    
+
+    # Loop through polygon data and extract relevant details
     for polygon in polygon_data:
-    # Ensure 'coordinates' key exists and is structured as expected
+        # Ensure 'coordinates' key exists and is structured as expected
         if 'coordinates' in polygon and isinstance(polygon['coordinates'], list):
             coords = polygon['coordinates']
             # Check for multi-polygon structure (a list of lists)
             if isinstance(coords[0], list):
-                # MultiPolygon: Extract the first point of the first polygon part (ensure you get just lon, lat)
-                point_coords = coords[0][0]
+                # MultiPolygon: Extract the first point of the first polygon part
+                point_coords = coords[0][0][:2]  # Extract only lon, lat
             else:
                 # Single Polygon: Directly extract the coordinates
-                point_coords = coords
-            # Ensure point_coords has at least two values and ignore extra dimensions
-            if len(point_coords) >= 2:
-                lon, lat = point_coords[:2]  # Extract only lon and lat
+                point_coords = coords[:2]  # Ensure only lon, lat are passed
+            # Ensure point_coords has at least two values (lon, lat)
+            if len(point_coords) == 2:
+                lon, lat = point_coords  # Unpack only lon and lat
                 polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
                 nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
+
 
 
 

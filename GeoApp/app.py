@@ -59,22 +59,25 @@ def main():
     # Load nearby parks (polygons) and find nearest points to user location
     park_polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
 
-    # Extract the names of the parks and their nearest points
-    park_options = []
-    park_nearest_points = []
-
-    for park in park_polygon_data:
-        if isinstance(park['coordinates'][0], list):  # Ensure the coordinates are a list of tuples
-            if isinstance(park['coordinates'][0][0], (list, tuple)):  # For multi-polygon
-                point_coords = park['coordinates'][0][0]  # Get the first coordinate of the first polygon part
-            else:
-                point_coords = park['coordinates'][0]  # For single polygon
-            park_options.append(park['description'])
-            park_nearest_points.append(Point(point_coords[0], point_coords[1]))
-
     # Extract the names of the polygons and their nearest points
-    polygon_options = [polygon['description'] for polygon in polygon_data]
-    nearest_points = [Point(polygon['coordinates'][0][0]) for polygon in polygon_data]
+    polygon_options = []
+    nearest_points = []
+
+    for polygon in polygon_data:
+        # Ensure 'coordinates' key exists and is structured as expected
+        if 'coordinates' in polygon and isinstance(polygon['coordinates'], list):
+            coords = polygon['coordinates']
+            # Check for multi-polygon structure (a list of lists)
+            if isinstance(coords[0], list):
+                # MultiPolygon: Extract the first point of the first polygon
+                point_coords = coords[0][0] if isinstance(coords[0][0], (list, tuple)) else coords[0]
+            else:
+                # Single Polygon: Directly extract the coordinates
+                point_coords = coords
+            # Ensure point_coords has two values (lon, lat)
+            if len(point_coords) >= 2:
+                polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
+                nearest_points.append(Point(point_coords[0], point_coords[1]))  # Create Point object
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)

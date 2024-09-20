@@ -11,10 +11,18 @@ from utils.map_creation import create_map_with_features, display_theme_locations
 from prompts.language_prompts import prompts, themes
 
 # Title for the Streamlit app
-st.title("Geolocation with iframe in Streamlit")
+st.title("Jalan Jalan App")
 
 def main():
-    st.title("Interactive Geospatial App")
+# Initialize session state values if not already set
+    if 'user_input' not in st.session_state:
+        st.session_state['user_input'] = ""
+
+    if 'home_lat' not in st.session_state:
+        st.session_state['home_lat'] = None
+
+    if 'home_lon' not in st.session_state:
+        st.session_state['home_lon'] = None
 
     # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()
@@ -47,9 +55,44 @@ def main():
     # Load nearby polygons and find nearest points to user location
     polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
 
+    # ---- INSERT THIS BLOCK AFTER LOADING THE POLYGON DATA FOR PARKS ----
+    # Load nearby parks (polygons) and find nearest points to user location
+    park_polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
+
     # Extract the names of the polygons and their nearest points
-    polygon_options = [polygon['description'] for polygon in polygon_data]
-    nearest_points = [Point(polygon['coordinates'][0][0]) for polygon in polygon_data]
+    polygon_options = []
+    nearest_points = []
+
+    # Loop through polygon data and extract relevant details
+    for polygon in polygon_data:
+    # Ensure 'coordinates' key exists and is structured as expected
+        if 'coordinates' in polygon and isinstance(polygon['coordinates'], list):
+            coords = polygon['coordinates']
+            
+            try:
+                # Check for multi-polygon structure (a list of lists)
+                if isinstance(coords[0], list):
+                    # MultiPolygon: Extract the first point of the first polygon part
+                    point_coords = coords[0][0]
+                else:
+                    # Single Polygon: Directly extract the coordinates
+                    point_coords = coords
+
+                # Debug: Log the point coordinates for inspection
+                st.write(f"Point coordinates: {point_coords}")
+
+                # Ensure point_coords has at least two values (lon, lat), ignore extra dimensions
+                if len(point_coords) >= 2:
+                    lon, lat = point_coords[:2]  # Extract only lon and lat
+                    polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
+                    nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
+                else:
+                    st.warning(f"Skipping invalid point with insufficient dimensions: {point_coords}")
+
+            except Exception as e:
+                st.error(f"Error processing coordinates: {coords}. Error: {e}")
+                continue  # Skip to the next polygon if there's an error
+
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
@@ -139,35 +182,27 @@ def main():
         else:
             st.write("No valid theme locations available for selection.")
 
-    # Polygon name retrieval and routing
-    if polygon_options:
-        selected_polygon = st.selectbox("Select a Nearby Park or Polygon", polygon_options)
-        if selected_polygon:
-            # Find the index of the selected polygon to get the nearest point
-            selected_index = polygon_options.index(selected_polygon)
-            nearest_point = nearest_points[selected_index]
+    # ---- INSERT THIS BLOCK AFTER THE POLYGON NAME RETRIEVAL AND ROUTING COMMENT ----
+    # Allow selection of park from the dropdown and route to it
+    if park_options:
+        selected_park = st.selectbox("Select a Nearby Park", park_options)
+        if selected_park:
+            # Find the index of the selected park to get the nearest point
+            selected_park_index = park_options.index(selected_park)
+            nearest_park_point = park_nearest_points[selected_park_index]
 
             start = f"{lat},{lon}"  # Use current geolocation as the start point
-            end = f"{nearest_point.y},{nearest_point.x}"  # Use nearest point coordinates as the end point
+            end = f"{nearest_park_point.y},{nearest_park_point.x}"  # Use nearest park point coordinates as the end point
 
-            # Select route type
-            route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
-            if route_type == "pt":
-                mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-                max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
-
-                current_datetime = datetime.now()
-                date_str = current_datetime.strftime("%m-%d-%Y")
-                time_str = current_datetime.strftime("%H:%M:%S")
-
-                route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
-            else:
-                route_data = get_route(start, end, route_type)
+            # Select route type for parks
+            route_type = st.selectbox("Select a Route Type (for Park)", ["walk", "drive", "cycle", "pt"], key="park_route_type")
+            route_data = get_route(start, end, route_type)
 
             if route_data and "route_geometry" in route_data:
                 route_geometry = route_data["route_geometry"]
-                create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, park_polygon_data, user_location, route_geometry)
 
+                # Display the route summary: total time and distance
                 if route_data and "route_summary" in route_data:
                     total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
                     total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters

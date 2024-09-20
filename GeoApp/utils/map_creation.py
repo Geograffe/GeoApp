@@ -36,10 +36,14 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
         folium.Marker([user_location['latitude'], user_location['longitude']],
                       popup="Your Location", icon=folium.Icon(color="blue")).add_to(m)
 
-    # Decode and display the route on the map
+    # Display the route on the map (assuming route_geometry is already decoded for public transport)
     if route_geometry:
-        decoded_route = polyline.decode(route_geometry)
-        folium.PolyLine(locations=[(lat, lon) for lat, lon in decoded_route], color="blue", weight=5).add_to(m)
+        if isinstance(route_geometry[0], tuple):  # If it's already a list of coordinates
+            folium.PolyLine(locations=route_geometry, color="blue", weight=5).add_to(m)
+        else:
+            # Decode and display the route for general cases (walking, driving, cycling)
+            decoded_route = polyline.decode(route_geometry)
+            folium.PolyLine(locations=[(lat, lon) for lat, lon in decoded_route], color="blue", weight=5).add_to(m)
 
     if dengue_clusters:
         for cluster in dengue_clusters:
@@ -54,7 +58,6 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
                 ).add_to(m)
 
     for polygon in polygon_data:
-        # Ensure the coordinates are correctly nested
         if isinstance(polygon['coordinates'][0], list):  # For MultiPolygon
             for sub_polygon in polygon['coordinates']:
                 folium.Polygon(
@@ -71,6 +74,7 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
 
     append_theme_markers_to_map(m, theme_data)
     folium_static(m)
+
 
 
 def display_theme_locations(theme_data):

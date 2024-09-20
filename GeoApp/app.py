@@ -65,22 +65,34 @@ def main():
 
     # Loop through polygon data and extract relevant details
     for polygon in polygon_data:
-        # Ensure 'coordinates' key exists and is structured as expected
+    # Ensure 'coordinates' key exists and is structured as expected
         if 'coordinates' in polygon and isinstance(polygon['coordinates'], list):
             coords = polygon['coordinates']
-            # Check for multi-polygon structure (a list of lists)
-            if isinstance(coords[0], list):
-                # MultiPolygon: Extract the first point of the first polygon part
-                point_coords = coords[0][0]
-            else:
-                # Single Polygon: Directly extract the coordinates
-                point_coords = coords
+            
+            try:
+                # Check for multi-polygon structure (a list of lists)
+                if isinstance(coords[0], list):
+                    # MultiPolygon: Extract the first point of the first polygon part
+                    point_coords = coords[0][0]
+                else:
+                    # Single Polygon: Directly extract the coordinates
+                    point_coords = coords
 
-            # Ensure point_coords has at least two values (lon, lat), ignore extra dimensions
-            if len(point_coords) >= 2:
-                lon, lat = point_coords[:2]  # Extract only lon and lat, ignore extra values like elevation (3rd dimension)
-                polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
-                nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
+                # Debug: Log the point coordinates for inspection
+                st.write(f"Point coordinates: {point_coords}")
+
+                # Ensure point_coords has at least two values (lon, lat), ignore extra dimensions
+                if len(point_coords) >= 2:
+                    lon, lat = point_coords[:2]  # Extract only lon and lat
+                    polygon_options.append(polygon['description'])  # Assuming 'description' holds the name
+                    nearest_points.append(Point(lon, lat))  # Create Point object with only lon and lat
+                else:
+                    st.warning(f"Skipping invalid point with insufficient dimensions: {point_coords}")
+
+            except Exception as e:
+                st.error(f"Error processing coordinates: {coords}. Error: {e}")
+                continue  # Skip to the next polygon if there's an error
+
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)

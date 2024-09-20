@@ -33,7 +33,7 @@ def main():
     st.success(f"Current location retrieved: Latitude {lat}, Longitude {lon}")
 
     # Load the polygon data (GeoJSON)
-    file_path = '/mnt/data/NParksParksandNatureReserves.geojson'
+    file_path = '/GeoApp/data/NParksParksandNatureReserves.geojson'
     try:
         gdf = gpd.read_file(file_path)
     except Exception as e:

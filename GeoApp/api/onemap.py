@@ -81,9 +81,10 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
     
     itinerary = data["plan"]["itineraries"][0]  # First itinerary
     fare = itinerary.get("fare", "N/A")  # Get fare if available
-    
-    # Process legs of the trip to extract bus and train details
+
+    # Process legs of the trip to extract bus and train details and route geometry
     transit_details = []
+    route_geometry = []
     for leg in itinerary["legs"]:
         if leg["transitLeg"]:  # Check if it's a transit leg (bus/train)
             mode = leg["mode"]
@@ -95,8 +96,13 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
                 "agency": agency
             })
 
+        # Combine the leg geometries for displaying the complete route
+        if "legGeometry" in leg and "points" in leg["legGeometry"]:
+            route_geometry.append(leg["legGeometry"]["points"])
+
     return {
         "fare": fare,
         "transit_details": transit_details,
+        "route_geometry": route_geometry,
         "total_duration": itinerary["duration"] // 60  # Convert seconds to minutes
     }

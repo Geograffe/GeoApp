@@ -5,12 +5,10 @@ import streamlit_js_eval as sje
 from datetime import datetime
 import re
 
-# Import the two functions from api.onemap
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_general_route, get_public_transport_route
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents, extract_name_from_description 
 from utils.map_creation import create_map_with_features, display_theme_locations
-from prompts.language_prompts import prompts, themes
 
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
@@ -153,10 +151,10 @@ def main():
         end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
         # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="route_type")
         
         # Handle public transport route
-        if route_type == "pt":
+        if route_type == "public transport":
             mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
             max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
             
@@ -173,6 +171,11 @@ def main():
                 st.subheader("Transit Details")
                 for transit in public_transport_route['transit_details']:
                     st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
+                
+                # Display the route on the map
+                route_geometry = public_transport_route['route_geometry']
+                if route_geometry:
+                    create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
             else:
                 st.error("No valid public transport route found.")
         

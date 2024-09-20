@@ -145,17 +145,17 @@ def main():
                     st.session_state['selected_coords'] = selected_lat_lng
                     st.write(f"Selected Theme Coordinates: {selected_lat_lng}")
 
-    # Route calculation after selecting the location
+        # Route calculation after selecting the location
     if 'selected_coords' in st.session_state:
         selected_lat_lng = st.session_state['selected_coords']
         start = f"{lat},{lon}"  # Use current geolocation as the start point
         end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
         # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="route_type")
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
         
         # Handle public transport route
-        if route_type == "public transport":
+        if route_type == "pt":
             mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
             max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
             

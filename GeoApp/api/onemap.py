@@ -79,13 +79,12 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
         st.error("No valid public transport routes found.")
         return None
     
-    # Extracting the first itinerary
-    itinerary = data["plan"]["itineraries"][0]
+    itinerary = data["plan"]["itineraries"][0]  # First itinerary
     fare = itinerary.get("fare", "N/A")  # Get fare if available
 
     # Process legs of the trip to extract bus and train details and route geometry
     transit_details = []
-    route_geometry = []
+    route_geometry = []  # List to hold combined geometries
     for leg in itinerary["legs"]:
         if leg["transitLeg"]:  # Check if it's a transit leg (bus/train)
             mode = leg["mode"]
@@ -97,16 +96,16 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
                 "agency": agency
             })
 
-        # Collect all leg geometries
+        # Combine the leg geometries for displaying the complete route
         if "legGeometry" in leg and "points" in leg["legGeometry"]:
             route_geometry.append(leg["legGeometry"]["points"])
 
-    # Combine all leg geometries into a single polyline
+    # Join all segments into a single polyline string
     full_route_geometry = ''.join(route_geometry)
 
     return {
         "fare": fare,
         "transit_details": transit_details,
-        "route_geometry": full_route_geometry,  # Complete polyline string
+        "route_geometry": full_route_geometry,  # Joined full route geometry
         "total_duration": itinerary["duration"] // 60  # Convert seconds to minutes
     }

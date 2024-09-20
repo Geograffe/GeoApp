@@ -61,7 +61,6 @@ def display_theme_locations(theme_data):
             st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
             st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
             st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
-            st.write(f"**Business Names**: {theme.get('THEME_OWNER','N/A')}")
             st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
             st.write("---")
     else:

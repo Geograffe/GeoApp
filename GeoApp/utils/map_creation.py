@@ -1,6 +1,7 @@
 import folium
 from streamlit_folium import folium_static
 from folium.plugins import MarkerCluster
+import polyline
 
 def append_theme_markers_to_map(map_object, theme_data):
     # Initialize marker cluster for better management of many markers
@@ -27,13 +28,18 @@ def append_theme_markers_to_map(map_object, theme_data):
                 except (SyntaxError, ValueError):
                     print(f"Error evaluating LatLng for theme: {theme}")
 
-def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location=None):
+def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location=None, route_geometry=None):
     m = folium.Map(location=[lat, lon], zoom_start=15)
     folium.Marker([lat, lon], popup=f"Postal Code: {postal_code}").add_to(m)
     
     if user_location:
         folium.Marker([user_location['latitude'], user_location['longitude']],
                       popup="Your Location", icon=folium.Icon(color="blue")).add_to(m)
+
+    # Decode and display the route on the map
+    if route_geometry:
+        decoded_route = polyline.decode(route_geometry)
+        folium.PolyLine(locations=[(lat, lon) for lat, lon in decoded_route], color="blue", weight=5).add_to(m)
 
     if dengue_clusters:
         for cluster in dengue_clusters:
@@ -64,42 +70,3 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
 
     append_theme_markers_to_map(m, theme_data)
     folium_static(m)
-
-def display_theme_locations(theme_data):
-    import streamlit as st
-    
-    st.subheader("Nearby Theme Locations")
-
-    if theme_data:
-        # Loop through theme_data and display relevant information
-        for theme in theme_data:
-            name = theme.get('NAME', 'N/A')
-
-            # Only display if the name is not "N/A" or empty
-            if name != "N/A" and name.strip():
-                st.write(f"**Name**: {name}")
-                st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
-                st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
-                st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
-                
-                # Extract LatLng and display latitude and longitude
-                lat_lng_str = theme.get('LatLng', None)
-                if lat_lng_str:
-                    try:
-                        lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
-                        if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
-                            lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
-                            lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
-                            st.write(f"**Latitude**: {lat}")
-                            st.write(f"**Longitude**: {lng}")
-                        else:
-                            st.write("LatLng data is incomplete.")
-                    except ValueError as e:
-                        st.write(f"Error parsing LatLng: {e}")
-                
-                st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
-                st.write("---")
-    else:
-        st.write("No theme locations found.")
-
-

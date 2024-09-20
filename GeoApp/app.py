@@ -3,12 +3,11 @@ import geopandas as gpd
 from shapely.geometry import box
 import streamlit_js_eval as sje
 
-from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data
+from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_route
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents
 from utils.map_creation import create_map_with_features, display_theme_locations  # Import from map_creation
 from prompts.language_prompts import prompts, themes
-
 
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
@@ -99,11 +98,29 @@ def main():
                     for theme in themes:
                         theme_data.extend(get_theme_data(theme, extents))
 
-                    create_map_with_features(lat, lon, user_input, dengue_clusters, theme_data, polygon_data, user_location)
-
-                    # Display the theme locations
-                    display_theme_locations(theme_data)
-
+                    # Allow the user to choose a route type
+                    route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"])
+                    
+                    # Display the theme locations and return the lat-lng of the selected location
+                    selected_lat_lng = display_theme_locations(theme_data)
+                    
+                    if selected_lat_lng:
+                        # Format start and end points for OneMap routing
+                        start = f"{lat},{lon}"
+                        end = selected_lat_lng
+                        
+                        # Get the route based on user selection
+                        route_data = get_route(start, end, route_type, access_token="YOUR_API_TOKEN")
+                        
+                        if route_data and "route_geometry" in route_data:
+                            route_geometry = route_data["route_geometry"]
+                            
+                            # Call the function to create the map with the user's location and features along with the route
+                            create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                        else:
+                            st.error("No route found for the selected location.")
+                    else:
+                        st.error("No location selected.")
                 else:
                     st.error(prompts[st.session_state['language']]['error_message'])
 

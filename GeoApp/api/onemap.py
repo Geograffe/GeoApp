@@ -44,3 +44,14 @@ def get_theme_data(query_name, extents):
     else:
         st.error(f"Failed to retrieve data for {query_name}. Status Code: {response.status_code}")
         return []
+
+def get_route(start, end, route_type, auth_token):
+    url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType={route_type}"
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f"Failed to retrieve route. Status Code: {response.status_code}")
+        return None

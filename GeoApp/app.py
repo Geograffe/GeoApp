@@ -8,7 +8,7 @@ from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents,
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents
 from utils.map_creation import create_map_with_features, display_theme_locations  # Import from map_creation
-from prompts.language_prompts import prompts, themes
+from prompts.language_prompts import prompts, themes  # Ensure you import the correct prompts
 
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
@@ -70,11 +70,11 @@ def main():
         # Use the selected language for prompts
         lang_prompts = prompts[st.session_state['language']]
         st.success(f"Selected Language: {st.session_state['language']}")
-        prompt_text = lang_prompts['prompt']
+        prompt_text = lang_prompts['prompt']  # Use the correct prompt from language file
         st.write(prompt_text)
 
         # Input postal code to set as the return/home point
-        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))
+        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))  # Ensure prompt comes from language file
 
         if st.button(lang_prompts['enter_button'], key="enter_btn"):
             if user_input:
@@ -88,7 +88,7 @@ def main():
 
                     # Fetch weather data for the current location
                     weather_data = get_weather_data(lat, lon)
-                    st.subheader(lang_prompts["weather_prompt"])
+                    st.subheader(lang_prompts["weather_prompt"])  # Use the language-specific weather prompt
                     if weather_data:
                         st.write(f"**{lang_prompts['weather_station']}**: {weather_data['name']}")
                         st.write(f"**{lang_prompts['weather']}**: {weather_data['weather'][0]['description'].capitalize()}")

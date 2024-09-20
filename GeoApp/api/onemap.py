@@ -61,7 +61,6 @@ def get_general_route(start, end, route_type):
         st.error(f"Failed to retrieve {route_type} route. Status Code: {response.status_code}")
         return None
 
-# Function to handle public transport routes
 def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1000, num_itineraries=1):
     url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType=pt&date={date}&time={time}&mode={mode}&maxWalkDistance={max_walk_distance}&numItineraries={num_itineraries}"
 
@@ -84,7 +83,7 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
 
     # Process legs of the trip to extract bus and train details and route geometry
     transit_details = []
-    route_geometry = []
+    route_geometry = []  # List to hold combined geometries
     for leg in itinerary["legs"]:
         if leg["transitLeg"]:  # Check if it's a transit leg (bus/train)
             mode = leg["mode"]
@@ -100,9 +99,12 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
         if "legGeometry" in leg and "points" in leg["legGeometry"]:
             route_geometry.append(leg["legGeometry"]["points"])
 
+    # Join all segments into a single polyline string
+    full_route_geometry = ''.join(route_geometry)
+
     return {
         "fare": fare,
         "transit_details": transit_details,
-        "route_geometry": route_geometry,
+        "route_geometry": full_route_geometry,  # Joined full route geometry
         "total_duration": itinerary["duration"] // 60  # Convert seconds to minutes
     }

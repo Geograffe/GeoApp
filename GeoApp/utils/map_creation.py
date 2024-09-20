@@ -88,37 +88,43 @@ def display_theme_locations(theme_data):
             st.write("No valid theme locations found.")
             return
 
-        # Create a radio button for selecting a location
+        # Step 1: User selects a location from radio buttons
         selected_location = st.radio("Select a Location:", [loc["name"] for loc in locations])
 
-        # Once selected, print the location details
-        st.write(f"**Selected Location**: {selected_location}")
+        # Step 2: Add a confirmation button for the selection
+        confirm = st.button("Confirm Selection")
 
-        # Optionally, display details of the selected location
-        for loc in locations:
-            if loc["name"] == selected_location:
-                st.write(f"**Name**: {loc['name']}")
-                st.write(f"**Type**: {loc['type']}")
-                st.write(f"**Description**: {loc['description']}")
-                st.write(f"**Address**: {loc['address']}")
-                
-                # Extract LatLng and display latitude and longitude
-                lat_lng_str = loc["lat_lng_str"]
-                if lat_lng_str:
-                    try:
-                        lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
-                        if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
-                            lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
-                            lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
-                            st.write(f"**Latitude**: {lat}")
-                            st.write(f"**Longitude**: {lng}")
-                        else:
-                            st.write("LatLng data is incomplete.")
-                    except ValueError as e:
-                        st.write(f"Error parsing LatLng: {e}")
-                
-                st.write(f"[Link]({loc['link']})")
-                st.write("---")
-                break
+        # Step 3: If the user confirms the selection, display the details of the selected location
+        if confirm:
+            st.write(f"**Selected Location**: {selected_location}")
+            st.write("---")
+
+            # Find and display the details of the selected location
+            for loc in locations:
+                if loc["name"] == selected_location:
+                    st.write(f"**Name**: {loc['name']}")
+                    st.write(f"**Type**: {loc['type']}")
+                    st.write(f"**Description**: {loc['description']}")
+                    st.write(f"**Address**: {loc['address']}")
+                    
+                    # Extract LatLng and display latitude and longitude
+                    lat_lng_str = loc["lat_lng_str"]
+                    if lat_lng_str:
+                        try:
+                            lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
+                            if len(lat_lng_list) == 2:  # Ensure it has two values (lat, lng)
+                                lat = float(lat_lng_list[0].strip())  # Convert to float and strip any whitespace
+                                lng = float(lat_lng_list[1].strip())  # Convert to float and strip any whitespace
+                                st.write(f"**Latitude**: {lat}")
+                                st.write(f"**Longitude**: {lng}")
+                            else:
+                                st.write("LatLng data is incomplete.")
+                        except ValueError as e:
+                            st.write(f"Error parsing LatLng: {e}")
+                    
+                    st.write(f"[Link]({loc['link']})")
+                    st.write("---")
+                    break
     else:
         st.write("No theme locations found.")
+

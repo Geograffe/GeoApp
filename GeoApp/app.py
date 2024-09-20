@@ -9,6 +9,7 @@ from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents,
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents, extract_name_from_description 
 from utils.map_creation import create_map_with_features, display_theme_locations
+from prompts.language_prompts import prompts, themes
 
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")

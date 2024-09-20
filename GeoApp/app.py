@@ -1,9 +1,7 @@
 import streamlit as st
 import geopandas as gpd
 from shapely.geometry import box
-from streamlit_folium import folium_static
-import folium
-import streamlit.components.v1 as components
+import streamlit_js_eval as sje
 
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data
 from api.openweathermap import get_weather_data
@@ -11,57 +9,32 @@ from utils.data_processing import load_polygons_from_geojson_within_extents
 from utils.map_creation import create_map_with_features, display_theme_locations  # Import from map_creation
 from prompts.language_prompts import prompts, themes
 
-# JavaScript code to listen for messages from the iframe and reload Streamlit with the updated coordinates
-geo_js = """
-<script>
-  window.addEventListener("message", (event) => {
-    if (event.data && event.data.latitude && event.data.longitude) {
-      const queryParams = new URLSearchParams(window.location.search);
-      queryParams.set("latitude", event.data.latitude);
-      queryParams.set("longitude", event.data.longitude);
-      window.location.search = queryParams.toString(); // This reloads the page with updated params
-    }
-  });
-</script>
-"""
+
+# Title for the Streamlit app
+st.title("Geolocation with iframe in Streamlit")
 
 def main():
+
     st.title("Interactive Geospatial App")
-
-    # Load the polygon data from the GeoJSON file
-    file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
-
-    try:
-        gdf = gpd.read_file(file_path)
-    except Exception as e:
-        st.error(f"Error loading GeoJSON file: {e}")
-        return
-
-    # Inject the Geolocation HTML and JavaScript from the separate HTML file
-    with open('GeoApp/geolocation.html', 'r') as f:
-        geolocation_html = f.read()
-
-    # Inject the HTML and JavaScript for continuous location updates
-    components.html(geolocation_html, height=400)  # Adjust height based on content
-
-    # Inject the JavaScript listener for updating coordinates from the iframe
-    components.html(geo_js, height=0)
-
-    # Check if geolocation data (latitude and longitude) is available from query parameters
-    query_params = st.query_params  # Use the new query_params method
-    user_location = None
-    if "latitude" in query_params and "longitude" in query_params:
-        user_location = {
-            "latitude": float(query_params["latitude"]),
-            "longitude": float(query_params["longitude"])
-        }
-        st.success(f"Current Location: Latitude {user_location['latitude']}, Longitude {user_location['longitude']}")
-    else:
-        st.error("Unable to retrieve your current location. Please ensure location services are enabled.")
+    geolocationData = sje.get_geolocation()
+    user_location = {
+        "latitude": geolocationData["coords"]["latitude"],
+        "longitude": geolocationData["coords"]["longitude"]
+    }
 
     # Proceed only if user location is available
     if user_location:
-        lat, lon = user_location['latitude'], user_location['longitude']
+        lat, lon = user_location["latitude"], user_location["longitude"]
+        st.success(f"Location retrieved: Latitude {lat}, Longitude {lon}")
+
+        # GeoJSON file path
+        file_path = './data/NParksParksandNatureReserves.geojson'
+        # Load the polygon data from the GeoJSON file   
+        try:
+            gdf = gpd.read_file(file_path)
+        except Exception as e:
+            st.error(f"Error loading GeoJSON file: {e}")
+            return
 
         postal_code = "123456"  # Example postal code
         dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")  # Replace with your extents

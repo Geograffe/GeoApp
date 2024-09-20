@@ -70,6 +70,12 @@ def display_theme_locations(theme_data):
     
     st.subheader("Nearby Theme Locations")
 
+    # Step 1: Ensure the postal code is saved and does not restart the app
+    if "postal_code" not in st.session_state:
+        # You can replace this line with your postal code input logic
+        st.session_state.postal_code = st.text_input("Enter Postal Code", key="postal_code_input")
+        return  # Stop the app here to wait for postal code input
+
     if theme_data:
         # Create a list of names for the radio button
         locations = [
@@ -88,14 +94,27 @@ def display_theme_locations(theme_data):
             st.write("No valid theme locations found.")
             return
 
-        # Step 1: User selects a location from radio buttons
-        selected_location = st.radio("Select a Location:", [loc["name"] for loc in locations])
+        # Step 2: Use session state to persist selected location across app refreshes
+        if "selected_location" not in st.session_state:
+            st.session_state.selected_location = locations[0]["name"]  # Set the first location as default
 
-        # Step 2: Add a confirmation button for the selection
-        confirm = st.button("Confirm Selection")
+        # Create a radio button for selecting a location and store the selection in session state
+        selected_location = st.radio(
+            "Select a Location:",
+            [loc["name"] for loc in locations],
+            index=[loc["name"] for loc in locations].index(st.session_state.selected_location),
+            key="selected_location"
+        )
 
-        # Step 3: If the user confirms the selection, display the details of the selected location
-        if confirm:
+        # Step 3: Add a confirmation button for the selection and use session state to persist it
+        if "confirmed" not in st.session_state:
+            st.session_state.confirmed = False
+
+        if st.button("Confirm Selection"):
+            st.session_state.confirmed = True
+
+        # Step 4: If the user confirms the selection, display the details of the selected location
+        if st.session_state.confirmed:
             st.write(f"**Selected Location**: {selected_location}")
             st.write("---")
 

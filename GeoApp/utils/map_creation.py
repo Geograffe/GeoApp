@@ -88,19 +88,13 @@ def display_theme_locations(theme_data):
             st.write("No valid theme locations found.")
             return
 
-        # Initialize session state to keep the selection persistent
-        if "selected_location" not in st.session_state:
-            st.session_state.selected_location = locations[0]["name"]  # Set the first location as default
+        # Create a radio button for selecting a location
+        selected_location = st.radio("Select a Location:", [loc["name"] for loc in locations])
 
-        # Create a radio button for selecting a location and store the selection in session state
-        selected_location = st.radio(
-            "Select a Location:",
-            [loc["name"] for loc in locations],
-            index=[loc["name"] for loc in locations].index(st.session_state.selected_location),
-            key="selected_location"
-        )
+        # Once selected, print the location details
+        st.write(f"**Selected Location**: {selected_location}")
 
-        # Display details of the selected location
+        # Optionally, display details of the selected location
         for loc in locations:
             if loc["name"] == selected_location:
                 st.write(f"**Name**: {loc['name']}")
@@ -128,5 +122,3 @@ def display_theme_locations(theme_data):
                 break
     else:
         st.write("No theme locations found.")
-
-

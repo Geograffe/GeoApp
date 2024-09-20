@@ -67,14 +67,16 @@ def main():
 
     # Main flow after language selection
     if 'language' in st.session_state:
+        # Use the selected language for prompts
+        lang_prompts = prompts[st.session_state['language']]
         st.success(f"Selected Language: {st.session_state['language']}")
-        prompt_text = prompts[st.session_state['language']]['prompt']
+        prompt_text = lang_prompts['prompt']
         st.write(prompt_text)
 
         # Input postal code to set as the return/home point
-        user_input = st.text_input("Home Postal Code:", value=st.session_state.get("user_input", ""))
+        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))
 
-        if st.button(prompts[st.session_state['language']]['enter_button'], key="enter_btn"):
+        if st.button(lang_prompts['enter_button'], key="enter_btn"):
             if user_input:
                 latlon = get_latlon_from_postal(user_input)
                 if latlon:
@@ -86,14 +88,14 @@ def main():
 
                     # Fetch weather data for the current location
                     weather_data = get_weather_data(lat, lon)
-                    st.subheader("Current Weather Conditions")
+                    st.subheader(lang_prompts["weather_prompt"])
                     if weather_data:
-                        st.write(f"**Weather Station**: {weather_data['name']}")
-                        st.write(f"**Weather**: {weather_data['weather'][0]['description'].capitalize()}")
-                        st.write(f"**Temperature**: {weather_data['main']['temp']}°C")
-                        st.write(f"**Feels Like**: {weather_data['main']['feels_like']}°C")
-                        st.write(f"**Humidity**: {weather_data['main']['humidity']}%")
-                        st.write(f"**Wind Speed**: {weather_data['wind']['speed']} m/s, Direction: {weather_data['wind']['deg']}°")
+                        st.write(f"**{lang_prompts['weather_station']}**: {weather_data['name']}")
+                        st.write(f"**{lang_prompts['weather']}**: {weather_data['weather'][0]['description'].capitalize()}")
+                        st.write(f"**{lang_prompts['temperature']}**: {weather_data['main']['temp']}°C")
+                        st.write(f"**{lang_prompts['feels_like']}**: {weather_data['main']['feels_like']}°C")
+                        st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
+                        st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
 
                     extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
                     dengue_clusters = get_dengue_clusters_with_extents(extents)
@@ -119,7 +121,7 @@ def main():
             theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
 
             # Use session state to hold the selected theme
-            selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
+            selected_theme = st.selectbox(lang_prompts["prompt"], theme_options, key="selected_theme")
 
             if selected_theme:
                 lat_lng_str = selected_theme.split('-')[-1].strip()
@@ -158,10 +160,29 @@ def main():
         else:
             st.error("Failed to generate route or route geometry missing.")
 
-    # Restart button
-    if st.button("Restart", key="restart_btn"):
-        st.session_state.clear()
-        st.rerun()
+    # Restart and Return Home buttons
+    col1, col2 = st.columns([1, 1])
+
+    with col1:
+        if st.button("Restart", key="restart_btn"):
+            st.session_state.clear()
+            st.rerun()
+
+    with col2:
+        if "home_lat" in st.session_state and "home_lon" in st.session_state:
+            if st.button("Return Home", key="return_home_btn"):
+                # Set the current location as the start and home location as the end
+                start = f"{lat},{lon}"  # Current location
+                end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location (postal code)
+
+                route_type = "drive"  # Default route type to drive for return home
+                route_data = get_route(start, end, route_type)
+
+                if route_data and "route_geometry" in route_data:
+                    route_geometry = route_data["route_geometry"]
+                    create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                else:
+                    st.error("Failed to generate return home route.")
 
 # Run the Streamlit app
 if __name__ == "__main__":

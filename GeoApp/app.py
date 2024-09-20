@@ -2,6 +2,7 @@ import streamlit as st
 import geopandas as gpd
 from shapely.geometry import box
 import streamlit_js_eval as sje
+from datetime import datetime
 
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_route
 from api.openweathermap import get_weather_data
@@ -9,38 +10,43 @@ from utils.data_processing import load_polygons_from_geojson_within_extents
 from utils.map_creation import create_map_with_features, display_theme_locations  # Import from map_creation
 from prompts.language_prompts import prompts, themes
 
+
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
 
 def main():
     st.title("Interactive Geospatial App")
+    
     geolocationData = sje.get_geolocation()
-    user_location = {
-        "latitude": geolocationData["coords"]["latitude"],
-        "longitude": geolocationData["coords"]["longitude"]
-    }
+
+    # Check if geolocation data is available
+    if geolocationData and "coords" in geolocationData:
+        user_location = {
+            "latitude": geolocationData["coords"]["latitude"],
+            "longitude": geolocationData["coords"]["longitude"]
+        }
+    else:
+        st.error("Unable to retrieve geolocation data. Please enable location services in your browser.")
+        return  # Stop the execution here if geolocation is not available
 
     # Proceed only if user location is available
-    if user_location:
-        lat, lon = user_location["latitude"], user_location["longitude"]
-        st.success(f"Location retrieved: Latitude {lat}, Longitude {lon}")
+    lat, lon = user_location["latitude"], user_location["longitude"]
+    st.success(f"Location retrieved: Latitude {lat}, Longitude {lon}")
 
-        # GeoJSON file path
-        file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
-        # Load the polygon data from the GeoJSON file   
-        try:
-            gdf = gpd.read_file(file_path)
-        except Exception as e:
-            st.error(f"Error loading GeoJSON file: {e}")
-            return
+    # GeoJSON file path
+    file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
+    try:
+        gdf = gpd.read_file(file_path)
+    except Exception as e:
+        st.error(f"Error loading GeoJSON file: {e}")
+        return
 
-        postal_code = "123456"  # Example postal code
-        dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")  # Replace with your extents
-        theme_data = []  # Replace with your theme data
-        polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
+    postal_code = "123456"  # Example postal code
+    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")  # Replace with your extents
+    theme_data = []  # Replace with your theme data
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
 
-        # Call the function to create the map with the user's location and features
-        create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location)
+    create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location)
 
     # Language selection logic
     if 'language' not in st.session_state:
@@ -92,29 +98,37 @@ def main():
                     extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
                     polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
 
-                    # Collect theme data
                     theme_data = []
                     for theme in themes:
                         theme_data.extend(get_theme_data(theme, extents))
 
-                    # Allow the user to choose a route type
+                    # Select Route Type
                     route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"])
                     
+                    # For public transport, ask for additional parameters
+                    if route_type == "pt":
+                        mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"])
+                        max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000)
+                        date = st.date_input("Select Travel Date", datetime.now())
+                        time = st.time_input("Select Travel Time", datetime.now())
+
+                    else:
+                        mode = None
+                        max_walk_distance = None
+                        date = None
+                        time = None
+
                     # Display the theme locations and return the lat-lng of the selected location
                     selected_lat_lng = display_theme_locations(theme_data)
-                    
+
                     if selected_lat_lng:
-                        # Format start and end points for OneMap routing
                         start = f"{lat},{lon}"
                         end = selected_lat_lng
-                        
-                        # Get the route based on user selection
-                        route_data = get_route(start, end, route_type)
-                        
+
+                        route_data = get_route(start, end, route_type, mode, date.strftime("%m-%d-%Y"), time.strftime("%H:%M:%S"), max_walk_distance)
+
                         if route_data and "route_geometry" in route_data:
                             route_geometry = route_data["route_geometry"]
-                            
-                            # Call the function to create the map with the user's location and features along with the route
                             create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
                         else:
                             st.error("No route found for the selected location.")
@@ -123,7 +137,7 @@ def main():
                 else:
                     st.error(prompts[st.session_state['language']]['error_message'])
 
-    # Ensure the Restart button has a unique key
+    # Restart button
     if st.button("Restart", key="restart_btn"):
         st.session_state.clear()
         st.rerun()

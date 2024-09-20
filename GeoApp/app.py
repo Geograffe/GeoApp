@@ -10,14 +10,13 @@ from utils.data_processing import load_polygons_from_geojson_within_extents
 from utils.map_creation import create_map_with_features, display_theme_locations  # Import from map_creation
 from prompts.language_prompts import prompts, themes
 
-
 # Title for the Streamlit app
 st.title("Geolocation with iframe in Streamlit")
 
 def main():
     st.title("Interactive Geospatial App")
 
-    # Fetch geolocation data
+    # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()
 
     # Check if geolocation data is available
@@ -31,7 +30,7 @@ def main():
         return  # Stop execution if geolocation is not available
 
     lat, lon = user_location["latitude"], user_location["longitude"]
-    st.success(f"Location retrieved: Latitude {lat}, Longitude {lon}")
+    st.success(f"Current location retrieved: Latitude {lat}, Longitude {lon}")
 
     # Load the polygon data (GeoJSON)
     file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
@@ -41,11 +40,11 @@ def main():
         st.error(f"Error loading GeoJSON file: {e}")
         return
 
-    postal_code = "123456"  # Example postal code
     dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
     polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
 
-    create_map_with_features(lat, lon, postal_code, dengue_clusters, [], polygon_data, user_location)
+    # Display map with current location
+    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
 
     # Language selection logic
     if 'language' not in st.session_state:
@@ -72,19 +71,20 @@ def main():
         prompt_text = prompts[st.session_state['language']]['prompt']
         st.write(prompt_text)
 
-        user_input = st.text_input("Postal Code:", value=st.session_state.get("user_input", ""))
+        # Input postal code to set as the return/home point
+        user_input = st.text_input("Home Postal Code:", value=st.session_state.get("user_input", ""))
 
         if st.button(prompts[st.session_state['language']]['enter_button'], key="enter_btn"):
             if user_input:
                 latlon = get_latlon_from_postal(user_input)
                 if latlon:
-                    lat, lon = latlon
-                    st.session_state["user_input"] = user_input
-                    st.session_state["lat"] = lat
-                    st.session_state["lon"] = lon
-                    st.success(f"Location Found: Latitude {lat}, Longitude {lon}")
+                    home_lat, home_lon = latlon
+                    st.session_state["user_input"] = user_input  # Save the postal code
+                    st.session_state["home_lat"] = home_lat     # Save the postal code lat
+                    st.session_state["home_lon"] = home_lon     # Save the postal code lon
+                    st.success(f"Home location set: Latitude {home_lat}, Longitude {home_lon}")
 
-                    # Fetch weather data
+                    # Fetch weather data for the current location
                     weather_data = get_weather_data(lat, lon)
                     st.subheader("Current Weather Conditions")
                     if weather_data:
@@ -117,7 +117,7 @@ def main():
 
         if filtered_theme_data:
             theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
-            
+
             # Use session state to hold the selected theme
             selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
 
@@ -135,7 +135,7 @@ def main():
     # Route calculation after selecting the theme
     if 'selected_lat_lng' in st.session_state:
         selected_lat_lng = st.session_state['selected_lat_lng']
-        start = f"{st.session_state['lat']},{st.session_state['lon']}"
+        start = f"{lat},{lon}"  # Use current geolocation as the start point
         end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
         # Select route type
@@ -154,7 +154,7 @@ def main():
 
         if route_data and "route_geometry" in route_data:
             route_geometry = route_data["route_geometry"]
-            create_map_with_features(st.session_state['lat'], st.session_state['lon'], st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+            create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
         else:
             st.error("Failed to generate route or route geometry missing.")
 
@@ -164,6 +164,5 @@ def main():
         st.rerun()
 
 # Run the Streamlit app
-
 if __name__ == "__main__":
     main()

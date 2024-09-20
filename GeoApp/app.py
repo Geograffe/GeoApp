@@ -132,7 +132,10 @@ def main():
                         end = selected_lat_lng
 
                         # Generate the route
-                        route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+                        if route_type == "pt":
+                            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+                        else:
+                            route_data = get_route(start, end, route_type)
 
                         if route_data and "route_geometry" in route_data:
                             route_geometry = route_data["route_geometry"]

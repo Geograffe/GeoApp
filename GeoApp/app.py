@@ -32,7 +32,7 @@ def main():
     lat, lon = user_location["latitude"], user_location["longitude"]
     st.success(f"Current location retrieved: Latitude {lat}, Longitude {lon}")
 
-    # Load the polygon data (GeoJSON)
+    # Load the polygon data (GeoJSON) - Parks
     file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
     try:
         gdf = gpd.read_file(file_path)
@@ -40,31 +40,29 @@ def main():
         st.error(f"Error loading GeoJSON file: {e}")
         return
 
-    # Get dengue clusters and polygon data
+    # Get dengue clusters and polygon data (for parks)
     dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
     extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
 
-    # Load nearby polygons and find nearest points to user location
-    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
+    # Load nearby polygons (parks) and find nearest points to user location
+    park_polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
 
-    # Extract the names of the polygons and their nearest points
-    polygon_options = []
-    nearest_points = []
-    
-    for polygon in polygon_data:
-        # Check if the coordinates are nested (e.g., multi-part polygons)
-        if isinstance(polygon['coordinates'][0], list):
-            # Handle multi-part polygons (e.g., lists of lists of coordinates)
-            nearest_point_coords = polygon['coordinates'][0][0]
-        else:
-            # Handle simple polygons
-            nearest_point_coords = polygon['coordinates'][0]
+    # Extract the names of the parks and their nearest points
+    park_options = [park['description'] for park in park_polygon_data]
+    park_nearest_points = [Point(park['coordinates'][0][0]) for park in park_polygon_data]
 
-        polygon_options.append(polygon['description'])
-        nearest_points.append(Point(nearest_point_coords[0], nearest_point_coords[1]))
+    # Fetch amenities using theme_data
+    theme_data = []
+    extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
+    for theme in themes:
+        theme_data.extend(get_theme_data(theme, extents))
+
+    # Filter out amenities with valid names
+    amenity_options = [f"{amenity.get('NAME', 'Unknown')} - {amenity.get('LatLng', 'N/A')}" for amenity in theme_data if amenity.get('NAME', '').strip()]
+    amenity_nearest_points = [eval(amenity.get('LatLng')) for amenity in theme_data if amenity.get('LatLng', '')]
 
     # Display map with current location
-    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
+    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], park_polygon_data, user_location)
 
     # Language selection logic
     if 'language' not in st.session_state:
@@ -114,95 +112,40 @@ def main():
                         st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
                         st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
 
-                    extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
-                    dengue_clusters = get_dengue_clusters_with_extents(extents)
-
-                    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-                    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon, user_location)
-
-                    theme_data = []
-                    for theme in themes:
-                        theme_data.extend(get_theme_data(theme, extents))
-
-                    # Save theme data in session state
-                    st.session_state['theme_data'] = theme_data
-
-    # Handle theme selection and routing
-    if 'theme_data' in st.session_state:
-        theme_data = st.session_state['theme_data']
-
-        # Filter out themes with 'N/A' names
-        filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
-
-        if filtered_theme_data:
-            theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
-
-            # Use session state to hold the selected theme
-            selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
-
-            if selected_theme:
-                lat_lng_str = selected_theme.split('-')[-1].strip()
-                try:
-                    selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
-                    st.session_state['selected_lat_lng'] = selected_lat_lng
-                    st.write(f"Selected Location Coordinates: {selected_lat_lng}")
-                except ValueError:
-                    st.error("Failed to parse the selected location's coordinates.")
-        else:
-            st.write("No valid theme locations available for selection.")
-
-    # Polygon name retrieval and routing
-    if polygon_options:
-        selected_polygon = st.selectbox("Select a Nearby Park or Polygon", polygon_options)
-        if selected_polygon:
-            # Find the index of the selected polygon to get the nearest point
-            selected_index = polygon_options.index(selected_polygon)
-            nearest_point = nearest_points[selected_index]
+    # Display park options and amenity options separately for route selection
+    if park_options:
+        selected_park = st.selectbox("Select a Nearby Park", park_options)
+        if selected_park:
+            # Find the index of the selected park to get the nearest point
+            selected_park_index = park_options.index(selected_park)
+            nearest_park_point = park_nearest_points[selected_park_index]
 
             start = f"{lat},{lon}"  # Use current geolocation as the start point
-            end = f"{nearest_point.y},{nearest_point.x}"  # Use nearest point coordinates as the end point
+            end = f"{nearest_park_point.y},{nearest_park_point.x}"  # Use nearest park point coordinates as the end point
 
-            # Select route type
-            route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
-            if route_type == "pt":
-                mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-                max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
-
-                current_datetime = datetime.now()
-                date_str = current_datetime.strftime("%m-%d-%Y")
-                time_str = current_datetime.strftime("%H:%M:%S")
-
-                route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
-            else:
-                route_data = get_route(start, end, route_type)
-
+            # Select route type for parks
+            route_type = st.selectbox("Select a Route Type (for Park)", ["walk", "drive", "cycle", "pt"], key="park_route_type")
+            route_data = get_route(start, end, route_type)
             if route_data and "route_geometry" in route_data:
                 route_geometry = route_data["route_geometry"]
-                create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, park_polygon_data, user_location, route_geometry)
 
-                # Assuming `route_data` is retrieved successfully
-                if route_data and "route_summary" in route_data:
-                    total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
-                    total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters
+    if amenity_options:
+        selected_amenity = st.selectbox("Select a Nearby Amenity", amenity_options)
+        if selected_amenity:
+            # Find the index of the selected amenity to get the nearest point
+            selected_amenity_index = amenity_options.index(selected_amenity)
+            nearest_amenity_point = amenity_nearest_points[selected_amenity_index]
 
-                    # Convert time to minutes and hours
-                    total_minutes = total_time_seconds // 60
-                    hours = total_minutes // 60
-                    minutes = total_minutes % 60
+            start = f"{lat},{lon}"  # Use current geolocation as the start point
+            end = f"{nearest_amenity_point[1]},{nearest_amenity_point[0]}"  # Use nearest amenity point coordinates as the end point
 
-                    if hours > 0:
-                        time_str = f"{hours} hours {minutes} minutes"
-                    else:
-                        time_str = f"{minutes} minutes"
-
-                    # Convert distance to kilometers
-                    total_distance_km = total_distance_meters / 1000
-
-                    # Display the total time and distance
-                    st.write(f"**Total Time**: {time_str}")
-                    st.write(f"**Total Distance**: {total_distance_km:.2f} km")
-            else:
-                st.error("Failed to generate route or route geometry missing.")
+            # Select route type for amenities
+            route_type = st.selectbox("Select a Route Type (for Amenity)", ["walk", "drive", "cycle", "pt"], key="amenity_route_type")
+            route_data = get_route(start, end, route_type)
+            if route_data and "route_geometry" in route_data:
+                route_geometry = route_data["route_geometry"]
+                create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, park_polygon_data, user_location, route_geometry)
 
     # Return Home and Restart buttons
     col1, col2 = st.columns([1, 1])
@@ -219,31 +162,7 @@ def main():
 
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]
-                    create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
-
-                    if route_data and "route_summary" in route_data:
-                        total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
-                        total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters
-
-                        # Convert time to minutes and hours
-                        total_minutes = total_time_seconds // 60
-                        hours = total_minutes // 60
-                        minutes = total_minutes % 60
-
-                        if hours > 0:
-                            time_str = f"{hours} hours {minutes} minutes"
-                        else:
-                            time_str = f"{minutes} minutes"
-
-                        # Convert distance to kilometers
-                        total_distance_km = total_distance_meters / 1000
-
-                        # Display the total time and distance
-                        st.write(f"**Total Time**: {time_str}")
-                        st.write(f"**Total Distance**: {total_distance_km:.2f} km")
-
-                else:
-                    st.error("Failed to generate return home route.")
+                    create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, park_polygon_data, user_location, route_geometry)
 
     with col2:
         if st.button("Restart", key="restart_btn"):

@@ -62,11 +62,10 @@ def get_general_route(start, end, route_type):
         st.error(f"Failed to retrieve {route_type} route. Status Code: {response.status_code}")
         return None
 
+# Updated function for public transport
 def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1000, num_itineraries=1):
     url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType=pt&date={date}&time={time}&mode={mode}&maxWalkDistance={max_walk_distance}&numItineraries={num_itineraries}"
-
     headers = {"Authorization": f"Bearer {access_token}"}
-
     response = requests.get(url, headers=headers)
     
     if response.status_code != 200:

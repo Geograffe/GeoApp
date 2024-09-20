@@ -67,20 +67,40 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
 
 def display_theme_locations(theme_data):
     import streamlit as st
+    
     st.subheader("Nearby Theme Locations")
-    if theme_data:
-        for theme in theme_data:
-            name = theme.get('NAME', 'N/A')
 
-            # Only display if the name is not "N/A" or empty
-            if name != "N/A" and name.strip():
-                st.write(f"**Name**: {name}")
-                st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
-                st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
-                st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
+    if theme_data:
+        # Create a list of names for the radio button
+        locations = [
+            {
+                "name": theme.get('NAME', 'N/A'),
+                "description": theme.get('DESCRIPTION', 'N/A'),
+                "type": theme.get('THEMENAME', 'N/A'),
+                "address": f"{theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}",
+                "lat_lng_str": theme.get('LatLng', None),
+                "link": theme.get('HYPERLINK', '#')
+            }
+            for theme in theme_data if theme.get('NAME', 'N/A') != "N/A" and theme.get('NAME').strip()
+        ]
+
+        if not locations:
+            st.write("No valid theme locations found.")
+            return
+
+        # Create a radio button for selecting a location
+        selected_location = st.radio("Select a Location:", [loc["name"] for loc in locations])
+
+        # Display details of the selected location
+        for loc in locations:
+            if loc["name"] == selected_location:
+                st.write(f"**Name**: {loc['name']}")
+                st.write(f"**Type**: {loc['type']}")
+                st.write(f"**Description**: {loc['description']}")
+                st.write(f"**Address**: {loc['address']}")
                 
                 # Extract LatLng and display latitude and longitude
-                lat_lng_str = theme.get('LatLng', None)
+                lat_lng_str = loc["lat_lng_str"]
                 if lat_lng_str:
                     try:
                         lat_lng_list = lat_lng_str.split(",")  # Split the string by commas
@@ -94,8 +114,9 @@ def display_theme_locations(theme_data):
                     except ValueError as e:
                         st.write(f"Error parsing LatLng: {e}")
                 
-                st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
+                st.write(f"[Link]({loc['link']})")
                 st.write("---")
+                break
     else:
         st.write("No theme locations found.")
 

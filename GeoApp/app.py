@@ -145,62 +145,65 @@ def main():
                     st.session_state['selected_coords'] = selected_lat_lng
                     st.write(f"Selected Theme Coordinates: {selected_lat_lng}")
 
-    # Route calculation after selecting the location
-if 'selected_coords' in st.session_state:
-    selected_lat_lng = st.session_state['selected_coords']
-    start = f"{lat},{lon}"  # Use current geolocation as the start point
-    end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
+        # Route calculation after selecting the location
+    if 'selected_coords' in st.session_state:
+        selected_lat_lng = st.session_state['selected_coords']
+        start = f"{lat},{lon}"  # Use current geolocation as the start point
+        end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
-    # Select route type
-    route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
-    
-    # Handle public transport route
-    if route_type == "pt":
-        mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-        max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+        # Select route type
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="route_type")
         
-        current_datetime = datetime.now()
-        date_str = current_datetime.strftime("%m-%d-%Y")
-        time_str = current_datetime.strftime("%H:%M:%S")
-        
-        # Call the function for public transport route
-        public_transport_route = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
-
-        if public_transport_route:
-            st.write(f"**Fare**: {public_transport_route['fare']}")
-            st.write(f"**Total Duration**: {public_transport_route['total_duration']} minutes")
-            st.subheader("Transit Details")
-            for transit in public_transport_route['transit_details']:
-                st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
+        # Handle public transport route
+        if route_type == "public transport":
+            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
             
-            # Display the route on the map
-            route_geometry = public_transport_route['route_geometry']
-            if route_geometry:
-                create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
-        else:
-            st.error("No valid public transport route found.")
-    
-    # Handle general route (walk, drive, cycle)
-    else:
-        # Call the function for general routes
-        general_route_data = get_general_route(start, end, route_type)
+            current_datetime = datetime.now()
+            date_str = current_datetime.strftime("%m-%d-%Y")
+            time_str = current_datetime.strftime("%H:%M:%S")
+            
+            # Call the function for public transport route
+            public_transport_route = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
 
-        if general_route_data and "route_geometry" in general_route_data:
-            route_geometry = general_route_data["route_geometry"]
-            create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
-
-            if general_route_data and "route_summary" in general_route_data:
-                total_time_seconds = general_route_data["route_summary"]["total_time"]
-                total_distance_meters = general_route_data["route_summary"]["total_distance"]
-                total_minutes = total_time_seconds // 60
-                hours = total_minutes // 60
-                minutes = total_minutes % 60
-                time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
-                total_distance_km = total_distance_meters / 1000
-                st.write(f"**Total Time**: {time_str}")
-                st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+            if public_transport_route:
+                st.write(f"**Fare**: {public_transport_route['fare']}")
+                st.write(f"**Total Duration**: {public_transport_route['total_duration']} minutes")
+                st.subheader("Transit Details")
+                for transit in public_transport_route['transit_details']:
+                    st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
+                
+                # Display the route on the map
+                route_geometry = public_transport_route['route_geometry']
+                if route_geometry:
+                    # Decode the polyline geometry
+                    decoded_route = polyline.decode(route_geometry)
+                    create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, decoded_route)
+            else:
+                st.error("No valid public transport route found.")
+        
+        # Handle general route (walk, drive, cycle)
         else:
-            st.error("Failed to generate route or route geometry missing.")
+            # Call the function for general routes
+            general_route_data = get_general_route(start, end, route_type)
+
+            if general_route_data and "route_geometry" in general_route_data:
+                route_geometry = general_route_data["route_geometry"]
+                decoded_route = polyline.decode(route_geometry)  # Decode polyline
+                create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, decoded_route)
+
+                if general_route_data and "route_summary" in general_route_data:
+                    total_time_seconds = general_route_data["route_summary"]["total_time"]
+                    total_distance_meters = general_route_data["route_summary"]["total_distance"]
+                    total_minutes = total_time_seconds // 60
+                    hours = total_minutes // 60
+                    minutes = total_minutes % 60
+                    time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
+                    total_distance_km = total_distance_meters / 1000
+                    st.write(f"**Total Time**: {time_str}")
+                    st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+            else:
+                st.error("Failed to generate route or route geometry missing.")
 
     # Return Home and Restart buttons
     col1, col2 = st.columns([1, 1])

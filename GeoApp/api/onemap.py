@@ -1,6 +1,7 @@
 import requests
 import streamlit as st
 from datetime import datetime
+import polyline
 
 # Your access token
 access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0Mjc3MTk1Y2Q2NzdkZmI4ZDA2NWM4MGMzOGU0ZjhhMyIsImlzcyI6Imh0dHA6Ly9pbnRlcm5hbC1hbGItb20tcHJkZXppdC1pdC0xMjIzNjk4OTkyLmFwLXNvdXRoZWFzdC0xLmVsYi5hbWF6b25hd3MuY29tL2FwaS92Mi91c2VyL3Bhc3N3b3JkIiwiaWF0IjoxNzI2NzQ4MDA0LCJleHAiOjE3MjcwMDcyMDQsIm5iZiI6MTcyNjc0ODAwNCwianRpIjoiZ2puQTFBNmlacEEzVWJEUCIsInVzZXJfaWQiOjQ2MTIsImZvcmV2ZXIiOmZhbHNlfQ.E8-g2SUQhYVpNtaCu4otBOqBJwG-xMxOCYRaU7LUzJM"  # Replace this with your actual OneMap token
@@ -78,12 +79,13 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
         st.error("No valid public transport routes found.")
         return None
     
-    itinerary = data["plan"]["itineraries"][0]  # First itinerary
+    # Extracting the first itinerary
+    itinerary = data["plan"]["itineraries"][0]
     fare = itinerary.get("fare", "N/A")  # Get fare if available
 
     # Process legs of the trip to extract bus and train details and route geometry
     transit_details = []
-    route_geometry = []  # List to hold combined geometries
+    route_geometry = []
     for leg in itinerary["legs"]:
         if leg["transitLeg"]:  # Check if it's a transit leg (bus/train)
             mode = leg["mode"]
@@ -95,16 +97,16 @@ def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1
                 "agency": agency
             })
 
-        # Combine the leg geometries for displaying the complete route
+        # Collect all leg geometries
         if "legGeometry" in leg and "points" in leg["legGeometry"]:
             route_geometry.append(leg["legGeometry"]["points"])
 
-    # Join all segments into a single polyline string
+    # Combine all leg geometries into a single polyline
     full_route_geometry = ''.join(route_geometry)
 
     return {
         "fare": fare,
         "transit_details": transit_details,
-        "route_geometry": full_route_geometry,  # Joined full route geometry
+        "route_geometry": full_route_geometry,  # Complete polyline string
         "total_duration": itinerary["duration"] // 60  # Convert seconds to minutes
     }

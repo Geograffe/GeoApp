@@ -210,7 +210,6 @@ def main():
                 end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
 
                 # Public transport parameters
-                route_type = "public transport"
                 mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
                 max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
                 date_str = datetime.now().strftime("%m-%d-%Y")
@@ -218,10 +217,12 @@ def main():
 
                 # Retrieve public transport route to home
                 route_data = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
-                
+
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]
-                    create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry, route_type="public")
+                    
+                    # Update this line by removing 'route_type'
+                    create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
                     # Display additional information about the route
                     if "total_duration" in route_data:
@@ -234,6 +235,7 @@ def main():
                     st.write(f"**Fare**: {route_data.get('fare', 'N/A')}")
                 else:
                     st.error("Failed to generate return home route using public transport.")
+
 
 
     with col2:

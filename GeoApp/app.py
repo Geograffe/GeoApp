@@ -11,10 +11,18 @@ from utils.map_creation import create_map_with_features, display_theme_locations
 from prompts.language_prompts import prompts, themes
 
 # Title for the Streamlit app
-st.title("Geolocation with iframe in Streamlit")
+st.title("Jalan Jalan App")
 
 def main():
-    st.title("Interactive Geospatial App")
+# Initialize session state values if not already set
+    if 'user_input' not in st.session_state:
+        st.session_state['user_input'] = ""
+
+    if 'home_lat' not in st.session_state:
+        st.session_state['home_lat'] = None
+
+    if 'home_lon' not in st.session_state:
+        st.session_state['home_lon'] = None
 
     # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()

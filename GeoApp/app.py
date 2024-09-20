@@ -32,7 +32,7 @@ def main():
     lat, lon = user_location["latitude"], user_location["longitude"]
     st.success(f"Current location retrieved: Latitude {lat}, Longitude {lon}")
 
-    # Load the polygon data (GeoJSON) - Parks
+    # Load the polygon data (GeoJSON) for parks
     file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
     try:
         gdf = gpd.read_file(file_path)

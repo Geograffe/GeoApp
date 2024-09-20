@@ -113,7 +113,8 @@ def main():
                     st.session_state['theme_data'] = theme_data
 
     # Dropdown for selecting between Parks and Theme locations
-    if 'theme_data' in st.session_state:
+    if 'theme_data' in st.session_state and st.session_state['theme_data']:
+        theme_data = st.session_state['theme_data']
         location_type = st.selectbox("Choose Location Type", ["Parks", "Theme Locations"])
 
         # Dropdown logic for parks
@@ -161,7 +162,7 @@ def main():
 
         if route_data and "route_geometry" in route_data:
             route_geometry = route_data["route_geometry"]
-            create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+            create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
 
             if route_data and "route_summary" in route_data:
                 total_time_seconds = route_data["route_summary"]["total_time"]

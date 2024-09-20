@@ -54,14 +54,15 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
                 ).add_to(m)
 
     for polygon in polygon_data:
-        if isinstance(polygon['coordinates'][0], list):
+        # Ensure the coordinates are correctly nested
+        if isinstance(polygon['coordinates'][0], list):  # For MultiPolygon
             for sub_polygon in polygon['coordinates']:
                 folium.Polygon(
                     locations=[(coord[1], coord[0]) for coord in sub_polygon],
                     color='green', fill=True, fill_opacity=0.5,
                     popup=polygon['description']
                 ).add_to(m)
-        else:
+        else:  # For Polygon
             folium.Polygon(
                 locations=[(coord[1], coord[0]) for coord in polygon['coordinates']],
                 color='green', fill=True, fill_opacity=0.5,
@@ -70,6 +71,7 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
 
     append_theme_markers_to_map(m, theme_data)
     folium_static(m)
+
 
 def display_theme_locations(theme_data):
     import streamlit as st

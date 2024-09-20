@@ -13,7 +13,6 @@ from prompts.language_prompts import prompts, themes
 st.title("Geolocation with iframe in Streamlit")
 
 def main():
-
     st.title("Interactive Geospatial App")
     geolocationData = sje.get_geolocation()
     user_location = {
@@ -110,7 +109,7 @@ def main():
                         end = selected_lat_lng
                         
                         # Get the route based on user selection
-                        route_data = get_route(start, end, route_type, access_token="YOUR_API_TOKEN")
+                        route_data = get_route(start, end, route_type)
                         
                         if route_data and "route_geometry" in route_data:
                             route_geometry = route_data["route_geometry"]

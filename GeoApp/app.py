@@ -143,14 +143,17 @@ def main():
 
             # Ensure there is a valid selection and parse lat/lng
             if selected_theme:
+                # Extract the LatLng from the selected option
                 lat_lng_str = selected_theme.split('-')[-1].strip()
                 try:
                     selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
                     st.session_state['selected_lat_lng'] = selected_lat_lng
+                    st.write(f"Selected Location Coordinates: {selected_lat_lng}")
                 except ValueError:
                     st.error("Failed to parse the selected location's coordinates.")
         else:
             st.write("No valid theme locations available for selection.")
+
 
 # Get the LatLng of the selected theme
 if selected_theme:

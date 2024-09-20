@@ -42,12 +42,18 @@ def main():
         return
 
     dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
-    polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
-
-    # Extract park names from the description in GeoJSON
-    gdf['park_names'] = gdf['Description'].apply(extract_name_from_description)
+    
+    # Define extent (bounding box)
+    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
+    
+    # Filter parks within extent
+    gdf_within_extent = gdf[gdf.geometry.within(extent_polygon)]
+    
+    # Extract park names within extent
+    gdf_within_extent['park_names'] = gdf_within_extent['Description'].apply(extract_name_from_description)
 
     # Display map with current location and dengue clusters
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
 
     # Language selection logic
@@ -119,17 +125,16 @@ def main():
 
         # Dropdown logic for parks
         if location_type == "Parks":
-            park_options = [name for name in gdf['park_names'] if name]
+            park_options = [name for name in gdf_within_extent['park_names'] if name]
             selected_park = st.selectbox("Select a Park", park_options, key="selected_park")
             if selected_park:
-                selected_park_data = gdf[gdf['park_names'] == selected_park].iloc[0]
+                selected_park_data = gdf_within_extent[gdf_within_extent['park_names'] == selected_park].iloc[0]
                 park_lat, park_lon = selected_park_data.geometry.centroid.y, selected_park_data.geometry.centroid.x
                 st.session_state['selected_coords'] = (park_lat, park_lon)
                 st.write(f"Selected Park Coordinates: Latitude {park_lat}, Longitude {park_lon}")
 
         # Dropdown logic for theme locations
         elif location_type == "Theme Locations":
-            theme_data = st.session_state['theme_data']
             filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
             if filtered_theme_data:
                 theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]

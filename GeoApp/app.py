@@ -1,32 +1,19 @@
 import streamlit as st
 import geopandas as gpd
-from shapely.geometry import box, Point
+from shapely.geometry import box
 import streamlit_js_eval as sje
 from datetime import datetime
 
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_route
 from api.openweathermap import get_weather_data
 from utils.data_processing import load_polygons_from_geojson_within_extents
-from utils.map_creation import create_map_with_features, display_theme_locations
-from prompts.language_prompts import prompts, themes
+from utils.map_creation import create_map_with_features  # Import from map_creation
+from prompts.language_prompts import prompts, themes  # Ensure you import the correct prompts
 
 # Title for the Streamlit app
-st.title("Jalan Jalan App")
+st.title("Interactive Geospatial App")
 
 def main():
-    # Initialize session state values if not already set
-    if 'user_input' not in st.session_state:
-        st.session_state['user_input'] = ""
-
-    if 'home_lat' not in st.session_state:
-        st.session_state['home_lat'] = None
-
-    if 'home_lon' not in st.session_state:
-        st.session_state['home_lon'] = None
-
-    if 'theme_data' not in st.session_state:
-        st.session_state['theme_data'] = []
-
     # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()
 
@@ -51,41 +38,8 @@ def main():
         st.error(f"Error loading GeoJSON file: {e}")
         return
 
-    # Get dengue clusters and polygon data
     dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
-    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-
-    # Load nearby polygons and find nearest points to user location
-    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
-
-    # Load nearby parks (polygons) and find nearest points to user location
-    park_polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
-
-    # Extract the names of the polygons and their nearest points
-    park_options = []
-    park_nearest_points = []
-
-    # Loop through park polygon data and extract relevant details
-    for polygon in park_polygon_data:
-        if 'coordinates' in polygon and isinstance(polygon['coordinates'], list):
-            coords = polygon['coordinates']
-            try:
-                # Check for multi-polygon structure (a list of lists)
-                if isinstance(coords[0], list):
-                    point_coords = coords[0][0]
-                else:
-                    point_coords = coords
-
-                if len(point_coords) >= 2:
-                    lon, lat = point_coords[:2]
-                    park_options.append(polygon['description'])
-                    park_nearest_points.append(Point(lon, lat))
-                else:
-                    st.warning(f"Skipping invalid point with insufficient dimensions: {point_coords}")
-
-            except Exception as e:
-                st.error(f"Error processing coordinates: {coords}. Error: {e}")
-                continue  # Skip to the next polygon if there's an error
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025))
 
     # Display map with current location
     create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
@@ -137,10 +91,10 @@ def main():
                         st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
                         st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
 
-                    # Load theme data for the selected area
                     extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
                     dengue_clusters = get_dengue_clusters_with_extents(extents)
 
+                    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
                     polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
 
                     theme_data = []
@@ -160,6 +114,7 @@ def main():
         if filtered_theme_data:
             theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]
 
+            # Use session state to hold the selected theme
             selected_theme = st.selectbox("Select a Theme Location", theme_options, key="selected_theme")
 
             if selected_theme:
@@ -167,43 +122,67 @@ def main():
                 try:
                     selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
                     st.session_state['selected_lat_lng'] = selected_lat_lng
-                    st.write(f"Selected Location Coordinates: {selected_lat_lng}")
+                    st.write(f"Selected Theme Location Coordinates: {selected_lat_lng}")
                 except ValueError:
                     st.error("Failed to parse the selected location's coordinates.")
         else:
             st.write("No valid theme locations available for selection.")
 
-    # Park selection and routing logic
-    if park_options:
-        selected_park = st.selectbox("Select a Nearby Park", park_options)
-        if selected_park:
-            selected_park_index = park_options.index(selected_park)
-            nearest_park_point = park_nearest_points[selected_park_index]
+    # Display polygon selection below theme locations
+    if polygon_data:
+        polygon_options = [polygon['description'] for polygon in polygon_data]
+        selected_polygon = st.selectbox("Select a Polygon Location", polygon_options, key="selected_polygon")
 
-            start = f"{lat},{lon}"
-            end = f"{nearest_park_point.y},{nearest_park_point.x}"
+        if selected_polygon:
+            selected_polygon_data = next((poly for poly in polygon_data if poly['description'] == selected_polygon), None)
+            if selected_polygon_data:
+                lat_lng_coords = selected_polygon_data['coordinates'][0][0] if isinstance(selected_polygon_data['coordinates'][0], list) else selected_polygon_data['coordinates'][0]
+                st.session_state['selected_lat_lng'] = [lat_lng_coords[1], lat_lng_coords[0]]  # [lat, lon]
+                st.write(f"Selected Polygon Location Coordinates: {lat_lng_coords}")
 
-            route_type = st.selectbox("Select a Route Type (for Park)", ["walk", "drive", "cycle", "pt"], key="park_route_type")
+    # Route calculation after selecting the theme or polygon
+    if 'selected_lat_lng' in st.session_state:
+        selected_lat_lng = st.session_state['selected_lat_lng']
+        start = f"{lat},{lon}"  # Use current geolocation as the start point
+        end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
+
+        # Select route type
+        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "pt"], key="route_type")
+        if route_type == "pt":
+            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
+            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+
+            current_datetime = datetime.now()
+            date_str = current_datetime.strftime("%m-%d-%Y")
+            time_str = current_datetime.strftime("%H:%M:%S")
+
+            route_data = get_route(start, end, route_type, mode, date_str, time_str, max_walk_distance)
+        else:
             route_data = get_route(start, end, route_type)
 
-            if route_data and "route_geometry" in route_data:
-                route_geometry = route_data["route_geometry"]
-                create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, park_polygon_data, user_location, route_geometry)
+        if route_data and "route_geometry" in route_data:
+            route_geometry = route_data["route_geometry"]
+            create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
-                if "route_summary" in route_data:
-                    total_time_seconds = route_data["route_summary"]["total_time"]
-                    total_distance_meters = route_data["route_summary"]["total_distance"]
+            if route_data and "route_summary" in route_data:
+                total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
+                total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters
 
-                    total_minutes = total_time_seconds // 60
-                    hours = total_minutes // 60
-                    minutes = total_minutes % 60
-                    time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
-                    total_distance_km = total_distance_meters / 1000
+                total_minutes = total_time_seconds // 60
+                hours = total_minutes // 60
+                minutes = total_minutes % 60
 
-                    st.write(f"**Total Time**: {time_str}")
-                    st.write(f"**Total Distance**: {total_distance_km:.2f} km")
-            else:
-                st.error("Failed to generate route or route geometry missing.")
+                if hours > 0:
+                    time_str = f"{hours} hours {minutes} minutes"
+                else:
+                    time_str = f"{minutes} minutes"
+
+                total_distance_km = total_distance_meters / 1000
+
+                st.write(f"**Total Time**: {time_str}")
+                st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+        else:
+            st.error("Failed to generate route or route geometry missing.")
 
     # Return Home and Restart buttons
     col1, col2 = st.columns([1, 1])
@@ -211,24 +190,29 @@ def main():
     with col1:
         if "home_lat" in st.session_state and "home_lon" in st.session_state:
             if st.button("Return Home", key="return_home_btn"):
-                start = f"{lat},{lon}"
-                end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"
+                start = f"{lat},{lon}"  # Current location
+                end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
 
-                route_type = "drive"
+                route_type = "drive"  # Default route type to drive for return home
                 route_data = get_route(start, end, route_type)
 
                 if route_data and "route_geometry" in route_data:
                     route_geometry = route_data["route_geometry"]
                     create_map_with_features(lat, lon, st.session_state['user_input'], dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
-                    if "route_summary" in route_data:
-                        total_time_seconds = route_data["route_summary"]["total_time"]
-                        total_distance_meters = route_data["route_summary"]["total_distance"]
+                    if route_data and "route_summary" in route_data:
+                        total_time_seconds = route_data["route_summary"]["total_time"]  # Total time in seconds
+                        total_distance_meters = route_data["route_summary"]["total_distance"]  # Total distance in meters
 
                         total_minutes = total_time_seconds // 60
                         hours = total_minutes // 60
                         minutes = total_minutes % 60
-                        time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
+
+                        if hours > 0:
+                            time_str = f"{hours} hours {minutes} minutes"
+                        else:
+                            time_str = f"{minutes} minutes"
+
                         total_distance_km = total_distance_meters / 1000
 
                         st.write(f"**Total Time**: {time_str}")
@@ -242,5 +226,6 @@ def main():
             st.session_state.clear()
             st.rerun()
 
+# Run the Streamlit app
 if __name__ == "__main__":
     main()

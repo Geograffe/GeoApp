@@ -1,5 +1,6 @@
 import folium
 from streamlit_folium import folium_static
+from folium.plugins import MarkerCluster
 
 def append_theme_markers_to_map(map_object, theme_data):
     # Initialize marker cluster for better management of many markers

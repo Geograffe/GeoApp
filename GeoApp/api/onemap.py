@@ -46,45 +46,22 @@ def get_theme_data(query_name, extents):
         st.error(f"Failed to retrieve data for {query_name}. Status Code: {response.status_code}")
         return []
     
-def get_route(start, end, route_type, mode=None, date_str=None, time_str=None, max_walk_distance=None):
-    # Base URL for OneMap routing service
-    url = "https://www.onemap.gov.sg/api/public/routingsvc/route"
+
+def get_route(start, end, route_type, mode=None, date=None, time=None, max_walk_distance=None):
+    url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType={route_type}"
     
-    # Prepare parameters for the request
-    params = {
-        "start": start,
-        "end": end,
-        "routeType": route_type
-    }
-    
-    # Additional parameters for public transport (pt)
     if route_type == "pt":
-        if mode and date_str and time_str:
-            params.update({
-                "mode": mode,  # Public transport mode: TRANSIT, BUS, RAIL
-                "date": date_str,
-                "time": time_str,
-                "maxWalkDistance": max_walk_distance or 1000,  # Default to 1000 meters if not provided
-            })
-        else:
-            st.error("Missing required parameters for public transport route.")
-            return None
+        # Add parameters for public transport (pt)
+        url += f"&mode={mode}&date={date}&time={time}"
+        if max_walk_distance:
+            url += f"&maxWalkDistance={max_walk_distance}"
 
-    headers = {"Authorization": "Bearer YOUR_API_TOKEN"}
-
-    # Make the API request
-    response = requests.get(url, params=params, headers=headers)
+    headers = {"Authorization": f"Bearer {access_token}"}  # Add your valid access token here
     
-    # Handle the response
+    response = requests.get(url, headers=headers)
+    
     if response.status_code == 200:
-        data = response.json()
-        if "route_geometry" in data:
-            return data  # Return the full data including route_geometry
-        else:
-            st.error("No route geometry found in the response.")
-            st.write(data)  # Log the full response for debugging
-            return None
+        return response.json()
     else:
-        st.error(f"Failed to retrieve route. Status code: {response.status_code}")
-        st.write(response.text)  # Log the full response for debugging
+        st.error(f"Failed to retrieve route. Status Code: {response.status_code}")
         return None

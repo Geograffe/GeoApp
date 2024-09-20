@@ -74,6 +74,17 @@ def display_theme_locations(theme_data):
             st.write(f"**Type**: {theme.get('THEMENAME', 'N/A')}")
             st.write(f"**Description**: {theme.get('DESCRIPTION', 'N/A')}")
             st.write(f"**Address**: {theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}")
+            # Extract LatLng and display latitude and longitude
+            lat_lng_str = theme.get('LatLng', None)
+            if lat_lng_str:
+                try:
+                    lat_lng_list = eval(lat_lng_str)  # Safely convert string to list
+                    if isinstance(lat_lng_list, list) and len(lat_lng_list) > 0:
+                        lat_lng = lat_lng_list[0]
+                        st.write(f"**Latitude**: {lat_lng[0]}")
+                        st.write(f"**Longitude**: {lat_lng[1]}")
+                except Exception as e:
+                    st.write(f"Error parsing LatLng: {e}")
             st.write(f"[Link]({theme.get('HYPERLINK', '#')})")
             st.write("---")
     else:

@@ -70,3 +70,36 @@ def create_map_with_features(lat, lon, postal_code, dengue_clusters, theme_data,
 
     append_theme_markers_to_map(m, theme_data)
     folium_static(m)
+
+
+def display_theme_locations(theme_data):
+    import streamlit as st
+    
+    st.subheader("Nearby Theme Locations")
+
+    if theme_data:
+        # Create a list of available locations
+        locations = [
+            {
+                "name": theme.get('NAME', 'N/A'),
+                "lat_lng": theme.get('LatLng', None),
+                "address": f"{theme.get('ADDRESSSTREETNAME', 'N/A')} {theme.get('ADDRESSBLOCKHOUSENUMBER', '')}, {theme.get('ADDRESSPOSTALCODE', 'N/A')}"
+            }
+            for theme in theme_data if theme.get('NAME', 'N/A') != "N/A" and theme.get('LatLng', None) is not None
+        ]
+
+        # Radio button for selecting a location to route to
+        selected_location = st.radio("Select a Location to Route To:", [loc["name"] for loc in locations])
+
+        # Display the selected location details
+        for loc in locations:
+            if loc["name"] == selected_location:
+                st.write(f"**Selected Location**: {loc['name']}")
+                st.write(f"**Address**: {loc['address']}")
+                return loc["lat_lng"]  # Return the selected lat_lng string
+    else:
+        st.write("No theme locations found.")
+        return None
+
+
+

@@ -102,7 +102,19 @@ def main():
                         st.write(f"**{lang_prompts['feels_like']}**: {weather_data['main']['feels_like']}°C")
                         st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
                         st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
-
+                    
+                    # Add the following code block to display example events
+                    st.subheader("Example Events Retrieved from OnePA")
+                    example_events = [
+                        "XYZ CC - Pottery - Free",
+                        "ABC CC - Guitar - $10",
+                        "DEF CC - Yoga - $5",
+                        "GHI CC - Dance - Free"
+                    ]
+                    
+                    for event in example_events:
+                        st.markdown(f"**{event}**")
+                        
                     extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
                     dengue_clusters = get_dengue_clusters_with_extents(extents)
 

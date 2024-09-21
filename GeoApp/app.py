@@ -114,7 +114,7 @@ def main():
                     
                     for event in example_events:
                         st.markdown(f"**{event}**")
-                        
+
                     extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
                     dengue_clusters = get_dengue_clusters_with_extents(extents)
 
@@ -131,7 +131,7 @@ def main():
     # Dropdown for selecting between Parks and Theme locations
     if 'theme_data' in st.session_state and st.session_state['theme_data']:
         theme_data = st.session_state['theme_data']
-        location_type = st.selectbox("Choose Location Type", ["Parks", "Theme Locations"])
+        location_type = st.selectbox("Choose Location Type", ["Parks", "Community Centers and Historical Sites"])
 
         # Dropdown logic for parks
         if location_type == "Parks":
@@ -144,7 +144,7 @@ def main():
                 st.write(f"Selected Park Coordinates: Latitude {park_lat}, Longitude {park_lon}")
 
         # Dropdown logic for theme locations
-        elif location_type == "Theme Locations":
+        elif location_type == "Community Centers and Historical Sites":
             filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
             if filtered_theme_data:
                 theme_options = [f"{theme.get('NAME', 'Unknown')} - {theme.get('LatLng', 'N/A')}" for theme in filtered_theme_data]

@@ -11,24 +11,11 @@ from utils.data_processing import load_polygons_from_geojson_within_extents, ext
 from utils.map_creation import create_map_with_features, display_theme_locations
 from prompts.language_prompts import prompts, themes
 
-# Initialize the session state for access token and expiry time
-if 'access_token' not in st.session_state:
-    st.session_state['access_token'] = 'initial_token_here'
-    st.session_state['expires_at'] = datetime.now().timestamp() + 3600  # Set initial expiry time (e.g., 1 hour)
-
-if 'refresh_token' not in st.session_state:
-    st.session_state['refresh_token'] = 'initial_refresh_token_here'  # Set your initial refresh token
-
 # Title for the Streamlit app
 st.title("Jalan Jalan")
 
 def main():
 
-    # Use the get_access_token function to ensure the token is valid
-    current_token = get_access_token()
-    if not current_token:
-        st.error("Token could not be retrieved or refreshed. Exiting.")
-        return
     
     # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()

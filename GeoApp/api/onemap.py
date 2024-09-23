@@ -34,17 +34,24 @@ def get_dengue_clusters_with_extents(extents):
     else:
         st.error(f"Error {response.status_code}: {response.text}")
         return None
-
+    
 def get_theme_data(query_name, extents):
     url = f"https://www.onemap.gov.sg/api/public/themesvc/retrieveTheme?queryName={query_name}&extents={extents}"
     headers = {"Authorization": f"Bearer {access_token}"}
+
+    # Add logging to check if the access token is correct
+    st.write(f"Access Token: {access_token[:10]}...")  # Log the first few characters of the token for security
+
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json()
         return data.get("SrchResults", [])
     else:
+        # Log the error details to troubleshoot
         st.error(f"Failed to retrieve data for {query_name}. Status Code: {response.status_code}")
+        st.error(f"Response Text: {response.text}")
         return []
+
     
 
 # Function to handle walking, driving, cycling routes

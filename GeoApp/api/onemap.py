@@ -4,7 +4,8 @@ from datetime import datetime
 import polyline
 
 # Your access token
-access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZWQ1YjMyNTZiNzExMDdjNGFiMjkxNGU3N2U0Y2Y3NyIsImlzcyI6Imh0dHA6Ly9pbnRlcm5hbC1hbGItb20tcHJkZXppdC1pdC0xMjIzNjk4OTkyLmFwLXNvdXRoZWFzdC0xLmVsYi5hbWF6b25hd3MuY29tL2FwaS92Mi91c2VyL3Bhc3N3b3JkIiwiaWF0IjoxNzI3MDUzODk5LCJleHAiOjE3MjczMTMwOTksIm5iZiI6MTcyNzA1Mzg5OSwianRpIjoiMFFoNXJaNTdFUHN0UndVayIsInVzZXJfaWQiOjQ2OTksImZvcmV2ZXIiOmZhbHNlfQ.z32Q5Ys1Q5Rn5VPbu1bVBkFMsqQ1IeD63FJzEyleKbY"  # Replace this with your actual OneMap token
+access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0Mjc3MTk1Y2Q2NzdkZmI4ZDA2NWM4MGMzOGU0ZjhhMyIsImlzcyI6Imh0dHA6Ly9pbnRlcm5hbC1hbGItb20tcHJkZXppdC1pdC0xMjIzNjk4OTkyLmFwLXNvdXRoZWFzdC0xLmVsYi5hbWF6b25hd3MuY29tL2FwaS92Mi91c2VyL3Bhc3N3b3JkIiwiaWF0IjoxNzI3MDUyMDg3LCJleHAiOjE3MjczMTEyODcsIm5iZiI6MTcyNzA1MjA4NywianRpIjoiMXN1V3ZvV3Y5RWZRU2dnYiIsInVzZXJfaWQiOjQ2MTIsImZvcmV2ZXIiOmZhbHNlfQ._3t62dqMIqVlWTzoa85tqKHCUtNmawjzwfhkyPEOkXE"  # Replace this with your actual OneMap token
+
 
 def get_latlon_from_postal(postal_code):
     url = "https://www.onemap.gov.sg/api/common/elastic/search"
@@ -34,24 +35,17 @@ def get_dengue_clusters_with_extents(extents):
     else:
         st.error(f"Error {response.status_code}: {response.text}")
         return None
-    
+
 def get_theme_data(query_name, extents):
     url = f"https://www.onemap.gov.sg/api/public/themesvc/retrieveTheme?queryName={query_name}&extents={extents}"
     headers = {"Authorization": f"Bearer {access_token}"}
-
-    # Add logging to check if the access token is correct
-    st.write(f"Access Token: {access_token[:10]}...")  # Log the first few characters of the token for security
-
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json()
         return data.get("SrchResults", [])
     else:
-        # Log the error details to troubleshoot
         st.error(f"Failed to retrieve data for {query_name}. Status Code: {response.status_code}")
-        st.error(f"Response Text: {response.text}")
         return []
-
     
 
 # Function to handle walking, driving, cycling routes
@@ -67,7 +61,6 @@ def get_general_route(start, end, route_type):
     else:
         st.error(f"Failed to retrieve {route_type} route. Status Code: {response.status_code}")
         return None
-    
 
 def get_public_transport_route(start, end, date, time, mode, max_walk_distance=1000, num_itineraries=1):
     url = f"https://www.onemap.gov.sg/api/public/routingsvc/route?start={start}&end={end}&routeType=pt&date={date}&time={time}&mode={mode}&maxWalkDistance={max_walk_distance}&numItineraries={num_itineraries}"

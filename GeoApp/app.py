@@ -10,7 +10,7 @@ from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents,
 from api.openweathermap import get_weather_data, get_forecast_data  # Import the new function
 from utils.data_processing import load_polygons_from_geojson_within_extents, extract_name_from_description 
 from utils.map_creation import create_map_with_features, display_theme_locations
-from prompts.language_prompts import prompts, themes
+from prompts.language_prompts import prompts, themes  # Updated to include translations
 
 # Title for the Streamlit app
 st.title("Jalan Jalan")
@@ -78,10 +78,10 @@ def main():
     if 'language' in st.session_state:
         # Use the selected language for prompts
         lang_prompts = prompts[st.session_state['language']]
-        st.success(f"Selected Language: {st.session_state['language']}")
+        st.success(lang_prompts["weather_prompt"])
 
         # Input postal code to set as the return/home point, display only once
-        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))  # Ensure prompt comes from language file
+        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))
 
         if st.button(lang_prompts['enter_button'], key="enter_btn"):
             if user_input:
@@ -91,60 +91,53 @@ def main():
                     st.session_state["user_input"] = user_input  # Save the postal code
                     st.session_state["home_lat"] = home_lat     # Save the postal code lat
                     st.session_state["home_lon"] = home_lon     # Save the postal code lon
-                    st.success(f"Home location set: Latitude {home_lat}, Longitude {home_lon}")
+                    st.success(f"{lang_prompts['weather_station']}: Latitude {home_lat}, Longitude {home_lon}")
 
                     # Fetch weather data for the current location
                     weather_data = get_weather_data(lat, lon)
-                    st.subheader("Current Weather Data")
+                    st.subheader(lang_prompts["weather_prompt"])
                     if weather_data:
-                        st.write(f"**Weather Station**: {weather_data['name']}")
-                        st.write(f"**Weather**: {weather_data['weather'][0]['description'].capitalize()}")
-                        st.write(f"**Temperature**: {weather_data['main']['temp']}°C")
-                        st.write(f"**Feels Like**: {weather_data['main']['feels_like']}°C")
-                        st.write(f"**Humidity**: {weather_data['main']['humidity']}%")
-                        st.write(f"**Wind Speed**: {weather_data['wind']['speed']} m/s, Wind Direction: {weather_data['wind']['deg']}°")
+                        st.write(f"**{lang_prompts['weather_station']}**: {weather_data['name']}")
+                        st.write(f"**{lang_prompts['weather']}**: {weather_data['weather'][0]['description'].capitalize()}")
+                        st.write(f"**{lang_prompts['temperature']}**: {weather_data['main']['temp']}°C")
+                        st.write(f"**{lang_prompts['feels_like']}**: {weather_data['main']['feels_like']}°C")
+                        st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
+                        st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
                     else:
-                        st.write("Unable to retrieve current weather data.")
+                        st.write(lang_prompts['error_message'])
                     
-                     # Fetch forecast data for the next 1-2 hours
+                    # Fetch forecast data for the next 1-2 hours
                     forecast_data = get_forecast_data(lat, lon)
-                    st.subheader("Weather Forecast for the Next 1-2 Hours")
+                    st.subheader(lang_prompts["weather_prompt"])
                     
                     if forecast_data and 'list' in forecast_data:
-                        # Timezone conversion to Singapore Time
                         sg_timezone = pytz.timezone("Asia/Singapore")
 
-                        # Get the closest forecast time periods (typically 3-hour intervals)
-                        for entry in forecast_data['list'][:1]:  # We only fetch the first entry (~next 1-2 hours)
+                        for entry in forecast_data['list'][:1]:  # Fetch next 1-2 hours
                             dt_txt = entry['dt_txt']
-                            
-                            # Convert the UTC time to Singapore time
                             utc_time = datetime.strptime(dt_txt, '%Y-%m-%d %H:%M:%S')
                             utc_time = utc_time.replace(tzinfo=pytz.utc)
-                            sg_time = utc_time.astimezone(sg_timezone)  # Convert to Singapore time
+                            sg_time = utc_time.astimezone(sg_timezone)
                             
                             temp = entry['main']['temp']
                             weather_description = entry['weather'][0]['description']
-                            rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
+                            rain_chance = entry.get('pop', 0) * 100
 
-                            st.write(f"**At {sg_time.strftime('%Y-%m-%d %H:%M:%S')} SGT:**")
-                            st.write(f"- Temperature: {temp}°C")
-                            st.write(f"- Weather: {weather_description.capitalize()}")
-                            st.write(f"- Chance of Rain: {rain_chance}%")
+                            st.write(f"**{sg_time.strftime('%Y-%m-%d %H:%M:%S')} SGT:**")
+                            st.write(f"- {lang_prompts['temperature']}: {temp}°C")
+                            st.write(f"- {lang_prompts['weather']}: {weather_description.capitalize()}")
+                            st.write(f"- {lang_prompts['weather']} Chance: {rain_chance}%")
 
-                            # Check if it's likely to rain
                             if rain_chance > 50:
-                                st.warning("It's likely to rain. You may want to bring an umbrella or find sheltered amenities.")
-
-                            # Check for heat exhaustion and heat stroke warnings
+                                st.warning(f"{lang_prompts['weather']}: Likely rain. Bring an umbrella or find shelter.")
                             if temp >= 32:
-                                st.warning("⚠️ Warning: High temperature (≥32°C). Risk of heat stroke. Avoid prolonged outdoor activity.")
+                                st.warning("⚠️ High temperature (≥32°C). Risk of heat stroke.")
                             elif temp >= 27:
-                                st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion. Stay hydrated and take breaks if outdoors.")
+                                st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion.")
                     else:
-                        st.write("Unable to retrieve forecast data.")
-                    
-                    # Add the following code block to display example events
+                        st.write(lang_prompts['error_message'])
+
+                    # Example Events
                     st.subheader("Example Events Retrieved from OnePA")
                     example_events = [
                         "XYZ CC - Pottery - Free",
@@ -174,7 +167,6 @@ def main():
         theme_data = st.session_state['theme_data']
         location_type = st.selectbox("Choose Location Type", ["Parks", "Community Centers and Historical Sites"])
 
-        # Dropdown logic for parks
         if location_type == "Parks":
             park_options = [name for name in gdf_within_extent['park_names'] if name]
             selected_park = st.selectbox("Select a Park", park_options, key="selected_park")
@@ -184,7 +176,6 @@ def main():
                 st.session_state['selected_coords'] = (park_lat, park_lon)
                 st.write(f"Selected Park Coordinates: Latitude {park_lat}, Longitude {park_lon}")
 
-        # Dropdown logic for theme locations
         elif location_type == "Community Centers and Historical Sites":
             filtered_theme_data = [theme for theme in theme_data if theme.get('NAME', 'N/A') != 'N/A' and theme.get('NAME', '').strip()]
             if filtered_theme_data:
@@ -196,44 +187,37 @@ def main():
                     st.session_state['selected_coords'] = selected_lat_lng
                     st.write(f"Selected Theme Coordinates: {selected_lat_lng}")
 
-        # Route calculation after selecting the location
     if 'selected_coords' in st.session_state:
         selected_lat_lng = st.session_state['selected_coords']
-        start = f"{lat},{lon}"  # Use current geolocation as the start point
+        start = f"{lat},{lon}"
         end = f"{selected_lat_lng[0]},{selected_lat_lng[1]}"
 
-        # Select route type
-        route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="route_type")
+        route_type = st.selectbox(lang_prompts["choose_route"], ["walk", "drive", "cycle", "public transport"], key="route_type")
         
-        # Handle public transport route
         if route_type == "public transport":
-            mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="mode")
-            max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
+            mode = st.selectbox(lang_prompts["public_transport"], ["TRANSIT", "BUS", "RAIL"], key="mode")
+            max_walk_distance = st.number_input(lang_prompts["max_walk"], min_value=500, max_value=5000, step=500, value=1000, key="max_walk_distance")
             
             current_datetime = datetime.now()
             date_str = current_datetime.strftime("%m-%d-%Y")
             time_str = current_datetime.strftime("%H:%M:%S")
             
-            # Call the function for public transport route
             public_transport_route = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
 
             if public_transport_route:
-                st.write(f"**Fare**: {public_transport_route['fare']}")
-                st.write(f"**Total Duration**: {public_transport_route['total_duration']} minutes")
-                st.subheader("Transit Details")
+                st.write(f"**{lang_prompts['fare']}**: {public_transport_route['fare']}")
+                st.write(f"**{lang_prompts['total_duration']}**: {public_transport_route['total_duration']} minutes")
+                st.subheader(lang_prompts["transit_details"])
                 for transit in public_transport_route['transit_details']:
-                    st.write(f"**Mode**: {transit['mode']}, **Route**: {transit['route']}, **Agency**: {transit['agency']}")
+                    st.write(f"**{lang_prompts['mode']}**: {transit['mode']}, **{lang_prompts['route']}**: {transit['route']}, **{lang_prompts['agency']}**: {transit['agency']}")
                 
-                # Display the route on the map
                 route_geometry = public_transport_route['route_geometry']
                 if route_geometry:
                     create_map_with_features(lat, lon, st.session_state.get('user_input', "Current Location"), dengue_clusters, [], polygon_data, user_location, route_geometry)
             else:
-                st.error("No valid public transport route found.")
+                st.error(lang_prompts['error_message'])
         
-        # Handle general route (walk, drive, cycle)
         else:
-            # Call the function for general routes
             general_route_data = get_general_route(start, end, route_type)
 
             if general_route_data and "route_geometry" in general_route_data:
@@ -248,66 +232,53 @@ def main():
                     minutes = total_minutes % 60
                     time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
                     total_distance_km = total_distance_meters / 1000
-                    st.write(f"**Total Time**: {time_str}")
-                    st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+                    st.write(f"**{lang_prompts['total_time']}**: {time_str}")
+                    st.write(f"**{lang_prompts['total_distance']}**: {total_distance_km:.2f} km")
             else:
-                st.error("Failed to generate route or route geometry missing.")
+                st.error(lang_prompts['error_message'])
 
     # Return Home and Restart buttons
     col1, col2 = st.columns([1, 1])
 
     with col1:
         if "home_lat" in st.session_state and "home_lon" in st.session_state:
-            # Allow users to select route type and mode of transport before clicking "Return Home"
-            route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="home_route_type")
+            route_type = st.selectbox(lang_prompts["choose_route"], ["walk", "drive", "cycle", "public transport"], key="home_route_type")
 
-            # Handle transport mode only if "public transport" is selected
             if route_type == "public transport":
-                # Public transport parameters
-                mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
-                max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
+                mode = st.selectbox(lang_prompts["public_transport"], ["TRANSIT", "BUS", "RAIL"], key="home_mode")
+                max_walk_distance = st.number_input(lang_prompts["max_walk"], min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
 
-            # When user clicks the "Return Home" button, handle the route calculation
-            if st.button("Return Home", key="return_home_btn"):
-                start = f"{lat},{lon}"  # Current location
-                end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
+            if st.button(lang_prompts["return_home"], key="return_home_btn"):
+                start = f"{lat},{lon}"
+                end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"
 
                 if route_type == "public transport":
                     date_str = datetime.now().strftime("%m-%d-%Y")
                     time_str = datetime.now().strftime("%H:%M:%S")
 
-                    # Retrieve public transport route to home
                     route_data = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
 
                     if route_data and "route_geometry" in route_data:
                         route_geometry = route_data["route_geometry"]
-
-                        # Display the map with the route
                         create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
-                        # Display additional information about the route
                         if "total_duration" in route_data:
                             total_minutes = route_data["total_duration"]
                             hours = total_minutes // 60
                             minutes = total_minutes % 60
                             time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
-                            st.write(f"**Return Home Time**: {time_str}")
+                            st.write(f"**{lang_prompts['return_home_time']}**: {time_str}")
 
-                        st.write(f"**Fare**: {route_data.get('fare', 'N/A')}")
+                        st.write(f"**{lang_prompts['fare']}**: {route_data.get('fare', 'N/A')}")
 
-                        # Display detailed transit steps
-                        st.subheader("Steps to get home:")
+                        st.subheader(lang_prompts["transit_steps"])
                         for transit in route_data['transit_details']:
-                            mode = transit.get("mode", "Unknown mode")
-                            route = transit.get("route", "Unknown route")
-                            agency = transit.get("agency", "Unknown agency")
-                            st.write(f"- **Mode**: {mode}, **Route**: {route}, **Agency**: {agency}")
+                            st.write(f"- **{lang_prompts['mode']}**: {transit['mode']}, **{lang_prompts['route']}**: {transit['route']}, **{lang_prompts['agency']}**: {transit['agency']}")
 
                     else:
-                        st.error("Failed to generate return home route using public transport.")
+                        st.error(lang_prompts['error_message'])
 
                 else:
-                    # Handle walking, driving, and cycling routes
                     general_route_data = get_general_route(start, end, route_type)
 
                     if general_route_data and "route_geometry" in general_route_data:
@@ -322,13 +293,13 @@ def main():
                             minutes = total_minutes % 60
                             time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
                             total_distance_km = total_distance_meters / 1000
-                            st.write(f"**Total Time**: {time_str}")
-                            st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+                            st.write(f"**{lang_prompts['total_time']}**: {time_str}")
+                            st.write(f"**{lang_prompts['total_distance']}**: {total_distance_km:.2f} km")
                     else:
-                        st.error("Failed to generate return home route for the selected mode.")
+                        st.error(lang_prompts['error_message'])
 
     with col2:
-        if st.button("Restart", key="restart_btn"):
+        if st.button(lang_prompts["restart"], key="restart_btn"):
             st.session_state.clear()
             st.rerun()
 

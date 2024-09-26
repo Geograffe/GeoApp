@@ -74,13 +74,12 @@ def main():
             if st.button("中文", key="chinese_btn"):
                 st.session_state['language'] = 'Chinese'
 
-    # Main flow after language selection
+    # Ensure language is selected before proceeding
     if 'language' in st.session_state:
-        # Use the selected language for prompts
-        lang_prompts = prompts[st.session_state['language']]
-        st.success(lang_prompts["weather_prompt"])
-
-        # Input postal code to set as the return/home point, display only once
+        lang_prompts = prompts[st.session_state['language']]  # Now lang_prompts is safely initialized
+        st.success(f"Selected Language: {st.session_state['language']}")
+        
+        # Continue with the rest of the app flow using `lang_prompts`
         user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))
 
         if st.button(lang_prompts['enter_button'], key="enter_btn"):

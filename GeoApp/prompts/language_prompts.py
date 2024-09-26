@@ -25,7 +25,7 @@ prompts = {
         "return_home": "Return Home",
         "return_home_time": "Return Home Time",
         "transit_steps": "Steps to get home",
-        "restart": "Restart",
+        "restart_btn": "Restart",
         "dengue_warning": "⚠️ Warning: Red zones on the map indicate dengue cluster areas. Please take precautions.",
         "no_dengue_warning": "No dengue clusters found in your vicinity."
     },
@@ -55,7 +55,7 @@ prompts = {
         "return_home": "Pulang Ke Rumah",
         "return_home_time": "Masa Pulang Ke Rumah",
         "transit_steps": "Langkah untuk pulang",
-        "restart": "Mulakan Semula",
+        "restart_btn": "Mulakan Semula",
         "dengue_warning": "⚠️ Amaran: Zon merah di peta menunjukkan kawasan kluster denggi. Sila ambil langkah berjaga-jaga.",
         "no_dengue_warning": "Tiada kluster denggi ditemui di kawasan anda."
     },
@@ -85,7 +85,7 @@ prompts = {
         "return_home": "வீட்டிற்கு திரும்பு",
         "return_home_time": "வீட்டிற்கு திரும்பும் நேரம்",
         "transit_steps": "வீட்டிற்கு திரும்ப எடுக்கும் நடைமுறைகள்",
-        "restart": "மீண்டும் தொடங்கு",
+        "restart_btn": "மீண்டும் தொடங்கு",
         "dengue_warning": "⚠️ எச்சரிக்கை: வரைபடத்தில் சிவப்பு பகுதிகள் டெங்கு குழுக்களைச் சுட்டிக்காட்டுகின்றன. தயவுசெய்து முன்னெச்சரிக்கையை எடுத்துக்கொள்ளுங்கள்.",
         "no_dengue_warning": "உங்கள் அருகில் டெங்கு குழுக்கள் எதுவும் இல்லை."
     },
@@ -115,7 +115,7 @@ prompts = {
         "return_home": "返回家",
         "return_home_time": "返回家时间",
         "transit_steps": "回家步骤",
-        "restart": "重新开始",
+        "restart_btn": "重新开始",
         "dengue_warning": "⚠️ 警告：地图上的红色区域表示登革热高发区。请采取预防措施。",
         "no_dengue_warning": "您附近没有发现登革热群集区。"
     }

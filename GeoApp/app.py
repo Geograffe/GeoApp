@@ -219,17 +219,21 @@ def main():
 
     with col1:
         if "home_lat" in st.session_state and "home_lon" in st.session_state:
+            # Allow users to select route type and mode of transport before clicking "Return Home"
+            route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="home_route_type")
+
+            # Handle transport mode only if "public transport" is selected
+            if route_type == "public transport":
+                # Public transport parameters
+                mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
+                max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
+
+            # When user clicks the "Return Home" button, handle the route calculation
             if st.button("Return Home", key="return_home_btn"):
                 start = f"{lat},{lon}"  # Current location
                 end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
 
-                # Select route type
-                route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="home_route_type")
-
                 if route_type == "public transport":
-                    # Public transport parameters
-                    mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
-                    max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
                     date_str = datetime.now().strftime("%m-%d-%Y")
                     time_str = datetime.now().strftime("%H:%M:%S")
 
@@ -288,7 +292,6 @@ def main():
         if st.button("Restart", key="restart_btn"):
             st.session_state.clear()
             st.rerun()
-
 
 if __name__ == "__main__":
     main()

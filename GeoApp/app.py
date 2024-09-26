@@ -6,7 +6,7 @@ from datetime import datetime
 import re
 
 from api.onemap import get_latlon_from_postal, get_dengue_clusters_with_extents, get_theme_data, get_general_route, get_public_transport_route
-from api.openweathermap import get_weather_data
+from api.openweathermap import get_weather_data, get_forecast_data  # Import the new function
 from utils.data_processing import load_polygons_from_geojson_within_extents, extract_name_from_description 
 from utils.map_creation import create_map_with_features, display_theme_locations
 from prompts.language_prompts import prompts, themes
@@ -15,8 +15,6 @@ from prompts.language_prompts import prompts, themes
 st.title("Jalan Jalan")
 
 def main():
-
-    
     # Fetch geolocation data (current location)
     geolocationData = sje.get_geolocation()
 
@@ -104,6 +102,35 @@ def main():
                         st.write(f"**{lang_prompts['feels_like']}**: {weather_data['main']['feels_like']}°C")
                         st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
                         st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
+                    else:
+                        st.write("Unable to retrieve current weather data.")
+                    
+                    # Fetch forecast data for the current location
+                    forecast_data = get_forecast_data(lat, lon)
+                    st.subheader("Weather Forecast for the Next Few Hours")
+                    if forecast_data and 'list' in forecast_data:
+                        for entry in forecast_data['list'][:3]:  # Get the forecast for the next 3 time periods (~9 hours)
+                            dt_txt = entry['dt_txt']
+                            temp = entry['main']['temp']
+                            weather_description = entry['weather'][0]['description']
+                            rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
+
+                            st.write(f"**At {dt_txt}:**")
+                            st.write(f"- Temperature: {temp}°C")
+                            st.write(f"- Weather: {weather_description.capitalize()}")
+                            st.write(f"- Chance of Rain: {rain_chance}%")
+
+                            # Check if it's likely to rain
+                            if rain_chance > 50:
+                                st.warning("It's likely to rain. You may want to bring an umbrella or find sheltered amenities.")
+
+                            # Check for heat exhaustion and heat stroke warnings
+                            if temp >= 32:
+                                st.warning("⚠️ Warning: High temperature (≥32°C). Risk of heat stroke. Avoid prolonged outdoor activity.")
+                            elif temp >= 27:
+                                st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion. Stay hydrated and take breaks if outdoors.")
+                    else:
+                        st.write("Unable to retrieve forecast data.")
                     
                     # Add the following code block to display example events
                     st.subheader("Example Events Retrieved from OnePA")

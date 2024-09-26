@@ -118,7 +118,7 @@ def main():
 
                 # Fetch forecast data for the next 1-2 hours
                 forecast_data = get_forecast_data(lat, lon)
-                st.subheader(lang_prompts['forecasted_weather_prompt'])  # Use 'forecasted_weather_prompt' instead of 'weather_prompt'
+                st.subheader(lang_prompts['forecasted_weather_prompt'])  # Ensure correct use of 'forecasted_weather_prompt'
 
                 if forecast_data and 'list' in forecast_data:
                     sg_timezone = pytz.timezone("Asia/Singapore")
@@ -136,10 +136,10 @@ def main():
                         st.write(f"**{sg_time.strftime('%Y-%m-%d %H:%M:%S')} SGT:**")
                         st.write(f"- {lang_prompts['temperature']}: {temp}°C")
                         st.write(f"- {lang_prompts['weather']}: {weather_description.capitalize()}")
-                        st.write(f"- {lang_prompts['chance_of_rain']}: {rain_chance}%")  # Use 'chance_of_rain' for this
+                        st.write(f"- {lang_prompts['chance_of_rain']}: {rain_chance}%")  # Use 'chance_of_rain' prompt
 
                         if rain_chance > 50:
-                            st.warning(lang_prompts['rain_warning'])  # You can add a prompt for rain warning if needed
+                            st.warning(lang_prompts['rain_warning'])  # Ensure 'rain_warning' is defined in the prompts
 
                         # Check for heat exhaustion and heat stroke warnings
                         if temp >= 32:
@@ -148,7 +148,6 @@ def main():
                             st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion. Stay hydrated and take breaks if outdoors.")
                 else:
                     st.write(lang_prompts['error_message'])
-
 
                 # Example events retrieved from OnePA
                 st.subheader("Example Events Retrieved from OnePA")

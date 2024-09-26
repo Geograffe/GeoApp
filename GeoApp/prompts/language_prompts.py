@@ -39,7 +39,10 @@ prompts = {
         "hours": "hours",
         "general_route_error": "Failed to generate route or route geometry missing.",
         "public_transport_error": "No valid public transport route found.",
-        "steps_home": "Steps to get home"
+        "steps_home": "Steps to get home",
+        "forecasted_weather_prompt": "Forecasted Weather Conditions",
+        "chance_of_rain": "Chance of Rain",
+
     },
     "Malay": {
         "prompt": "Sila masukkan kod pos alamat pulang anda di bawah:",
@@ -81,7 +84,10 @@ prompts = {
         "hours": "jam",
         "general_route_error": "Gagal menghasilkan laluan atau geometri laluan tiada.",
         "public_transport_error": "Tiada laluan pengangkutan awam yang sah dijumpai.",
-        "steps_home": "Langkah untuk pulang"
+        "steps_home": "Langkah untuk pulang",
+        "forecasted_weather_prompt": "Ramalan Keadaan Cuaca",
+        "chance_of_rain": "Kemungkinan Hujan",
+
     },
     "Tamil": {
         "prompt": "தயவுசெய்து உங்கள் திரும்பும் முகவரியின் அஞ்சல் குறியீட்டை கீழே உள்ளிடவும்:",
@@ -123,7 +129,10 @@ prompts = {
         "hours": "மணி",
         "general_route_error": "பாதையை உருவாக்க தவறிவிட்டது அல்லது பாதை கம்பீரம் இல்லை.",
         "public_transport_error": "சரியான பொதுப் போக்குவரத்து வழி இல்லை.",
-        "steps_home": "வீட்டிற்கு திரும்பு நடைமுறைகள்"
+        "steps_home": "வீட்டிற்கு திரும்பு நடைமுறைகள்",
+        "forecasted_weather_prompt": "முன்கூட்டிய காலநிலை நிலை",
+        "chance_of_rain": "மழையின் வாய்ப்பு",
+
     },
     "Chinese": {
         "prompt": "请在下方输入您的返程地址的邮政编码：",
@@ -165,7 +174,10 @@ prompts = {
         "hours": "小时",
         "general_route_error": "生成路线失败或路线几何缺失。",
         "public_transport_error": "未找到有效的公共交通路线。",
-        "steps_home": "返回家的步骤"
+        "steps_home": "返回家的步骤",
+        "forecasted_weather_prompt": "预报天气情况",
+        "chance_of_rain": "下雨的可能性",
+
     }
 }
 

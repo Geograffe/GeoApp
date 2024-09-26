@@ -1,4 +1,4 @@
-import streamlit as st 
+import streamlit as st
 import geopandas as gpd
 from shapely.geometry import box
 import streamlit_js_eval as sje
@@ -16,45 +16,6 @@ from prompts.language_prompts import prompts, themes
 st.title("Jalan Jalan")
 
 def main():
-    # Fetch geolocation data (current location)
-    geolocationData = sje.get_geolocation()
-
-    # Check if geolocation data is available
-    if geolocationData and "coords" in geolocationData:
-        user_location = {
-            "latitude": geolocationData["coords"]["latitude"],
-            "longitude": geolocationData["coords"]["longitude"]
-        }
-    else:
-        st.error("Unable to retrieve geolocation data. Please enable location services in your browser.")
-        return  # Stop execution if geolocation is not available
-
-    lat, lon = user_location["latitude"], user_location["longitude"]
-    st.success(f"Current location retrieved: Latitude {lat}, Longitude {lon}")
-
-    # Load the polygon data (GeoJSON)
-    file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
-    try:
-        gdf = gpd.read_file(file_path)
-    except Exception as e:
-        st.error(f"Error loading GeoJSON file: {e}")
-        return
-
-    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
-    
-    # Define extent (bounding box)
-    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-    
-    # Filter parks within extent
-    gdf_within_extent = gdf[gdf.geometry.within(extent_polygon)]
-    
-    # Extract park names within extent
-    gdf_within_extent['park_names'] = gdf_within_extent['Description'].apply(extract_name_from_description)
-
-    # Display map with current location and dengue clusters
-    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
-    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
-
     # Language selection logic
     if 'language' not in st.session_state:
         st.write("Please select your language:")
@@ -74,87 +35,133 @@ def main():
             if st.button("中文", key="chinese_btn"):
                 st.session_state['language'] = 'Chinese'
 
+    # Ensure language is selected before continuing
+    if 'language' not in st.session_state:
+        st.warning("Please select a language to continue.")
+        return
+
+    # Retrieve language prompts based on selected language
+    lang_prompts = prompts[st.session_state['language']]
+
+    # Fetch geolocation data (current location)
+    geolocationData = sje.get_geolocation()
+
+    # Check if geolocation data is available
+    if geolocationData and "coords" in geolocationData:
+        user_location = {
+            "latitude": geolocationData["coords"]["latitude"],
+            "longitude": geolocationData["coords"]["longitude"]
+        }
+    else:
+        st.error(lang_prompts['error_message'])
+        return  # Stop execution if geolocation is not available
+
+    lat, lon = user_location["latitude"], user_location["longitude"]
+    st.success(f"{lang_prompts['weather_prompt']}: Latitude {lat}, Longitude {lon}")
+
+    # Load the polygon data (GeoJSON)
+    file_path = 'GeoApp/data/NParksParksandNatureReserves.geojson'
+    try:
+        gdf = gpd.read_file(file_path)
+    except Exception as e:
+        st.error(f"{lang_prompts['error_message']}: {e}")
+        return
+
+    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
+    
+    # Define extent (bounding box)
+    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
+    
+    # Filter parks within extent
+    gdf_within_extent = gdf[gdf.geometry.within(extent_polygon)]
+    
+    # Extract park names within extent
+    gdf_within_extent['park_names'] = gdf_within_extent['Description'].apply(extract_name_from_description)
+
+    # Display map with current location and dengue clusters
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
+    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
+    if dengue_clusters:
+        st.warning(lang_prompts['dengue_warning'])
+    else:
+        st.info(lang_prompts['no_dengue_warning'])
+
     # Main flow after language selection
-    if 'language' in st.session_state:
-        # Use the selected language for prompts
-        lang_prompts = prompts[st.session_state['language']]
-        st.success(f"Selected Language: {st.session_state['language']}")
+    st.success(f"{lang_prompts['weather_prompt']}")
 
-        # Input postal code to set as the return/home point, display only once
-        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))  # Ensure prompt comes from language file
+    # Input postal code to set as the return/home point, display only once
+    user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))  # Ensure prompt comes from language file
 
-        if st.button(lang_prompts['enter_button'], key="enter_btn"):
-            if user_input:
-                latlon = get_latlon_from_postal(user_input)
-                if latlon:
-                    home_lat, home_lon = latlon
-                    st.session_state["user_input"] = user_input  # Save the postal code
-                    st.session_state["home_lat"] = home_lat     # Save the postal code lat
-                    st.session_state["home_lon"] = home_lon     # Save the postal code lon
-                    st.success(lang_prompts['home_set'].format(home_lat, home_lon))
+    if st.button(lang_prompts['enter_button'], key="enter_btn"):
+        if user_input:
+            latlon = get_latlon_from_postal(user_input)
+            if latlon:
+                home_lat, home_lon = latlon
+                st.session_state["user_input"] = user_input  # Save the postal code
+                st.session_state["home_lat"] = home_lat     # Save the postal code lat
+                st.session_state["home_lon"] = home_lon     # Save the postal code lon
+                st.success(f"Home location set: Latitude {home_lat}, Longitude {home_lon}")
 
-                    # Fetch weather data for the current location
-                    weather_data = get_weather_data(lat, lon)
-                    st.subheader(lang_prompts['weather_prompt'])
-                    if weather_data:
-                        st.write(f"**{lang_prompts['weather_station']}**: {weather_data['name']}")
-                        st.write(f"**{lang_prompts['weather']}**: {weather_data['weather'][0]['description'].capitalize()}")
-                        st.write(f"**{lang_prompts['temperature']}**: {weather_data['main']['temp']}°C")
-                        st.write(f"**{lang_prompts['feels_like']}**: {weather_data['main']['feels_like']}°C")
-                        st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
-                        st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
-                    else:
-                        st.write(lang_prompts['weather_error'])
+                # Fetch weather data for the current location
+                weather_data = get_weather_data(lat, lon)
+                st.subheader(lang_prompts["weather_prompt"])  # Use the language-specific weather prompt
+                if weather_data:
+                    st.write(f"**{lang_prompts['weather_station']}**: {weather_data['name']}")
+                    st.write(f"**{lang_prompts['weather']}**: {weather_data['weather'][0]['description'].capitalize()}")
+                    st.write(f"**{lang_prompts['temperature']}**: {weather_data['main']['temp']}°C")
+                    st.write(f"**{lang_prompts['feels_like']}**: {weather_data['main']['feels_like']}°C")
+                    st.write(f"**{lang_prompts['humidity']}**: {weather_data['main']['humidity']}%")
+                    st.write(f"**{lang_prompts['wind_speed']}**: {weather_data['wind']['speed']} m/s, {lang_prompts['wind_direction']}: {weather_data['wind']['deg']}°")
+                else:
+                    st.write(lang_prompts['error_message'])
 
-                    # Fetch forecast data for the next 1-2 hours
-                    forecast_data = get_forecast_data(lat, lon)
-                    st.subheader(lang_prompts['forecast_prompt'])
-                    
-                    if forecast_data and 'list' in forecast_data:
-                        # Timezone conversion to Singapore Time
-                        sg_timezone = pytz.timezone("Asia/Singapore")
+                # Fetch forecast data for the next 1-2 hours
+                forecast_data = get_forecast_data(lat, lon)
+                st.subheader(lang_prompts['weather_prompt'])
 
-                        # Get the closest forecast time periods (typically 3-hour intervals)
-                        for entry in forecast_data['list'][:1]:  # We only fetch the first entry (~next 1-2 hours)
-                            dt_txt = entry['dt_txt']
-                            
-                            # Convert the UTC time to Singapore time
-                            utc_time = datetime.strptime(dt_txt, '%Y-%m-%d %H:%M:%S')
-                            utc_time = utc_time.replace(tzinfo=pytz.utc)
-                            sg_time = utc_time.astimezone(sg_timezone)  # Convert to Singapore time
-                            
-                            temp = entry['main']['temp']
-                            weather_description = entry['weather'][0]['description']
-                            rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
+                if forecast_data and 'list' in forecast_data:
+                    sg_timezone = pytz.timezone("Asia/Singapore")
 
-                            st.write(f"**{sg_time.strftime('%Y-%m-%d %H:%M:%S')} SGT:**")
-                            st.write(f"- {lang_prompts['temperature']}: {temp}°C")
-                            st.write(f"- {lang_prompts['weather']}: {weather_description.capitalize()}")
-                            st.write(f"- {lang_prompts['rain_chance']}: {rain_chance}%")
+                    for entry in forecast_data['list'][:1]:  # We only fetch the first entry (~next 1-2 hours)
+                        dt_txt = entry['dt_txt']
 
-                            # Check if it's likely to rain
-                            if rain_chance > 50:
-                                st.warning(lang_prompts['rain_warning'])
+                        # Convert the UTC time to Singapore time
+                        utc_time = datetime.strptime(dt_txt, '%Y-%m-%d %H:%M:%S')
+                        utc_time = utc_time.replace(tzinfo=pytz.utc)
+                        sg_time = utc_time.astimezone(sg_timezone)  # Convert to Singapore time
+                        
+                        temp = entry['main']['temp']
+                        weather_description = entry['weather'][0]['description']
+                        rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
 
-                            # Check for heat exhaustion and heat stroke warnings
-                            if temp >= 32:
-                                st.warning(lang_prompts['heat_stroke_warning'])
-                            elif temp >= 27:
-                                st.warning(lang_prompts['heat_exhaustion_warning'])
-                    else:
-                        st.write(lang_prompts['forecast_error'])
+                        st.write(f"**{sg_time.strftime('%Y-%m-%d %H:%M:%S')} SGT:**")
+                        st.write(f"- {lang_prompts['temperature']}: {temp}°C")
+                        st.write(f"- {lang_prompts['weather']}: {weather_description.capitalize()}")
+                        st.write(f"- {lang_prompts['feels_like']}: {rain_chance}%")
 
-                    # Example Events
-                    st.subheader(lang_prompts['events_prompt'])
-                    example_events = [
-                        "XYZ CC - Pottery - Free",
-                        "ABC CC - Guitar - $10",
-                        "DEF CC - Yoga - $5",
-                        "GHI CC - Dance - Free"
-                    ]
-                    
-                    for event in example_events:
-                        st.markdown(f"**{event}**")
+                        # Check if it's likely to rain
+                        if rain_chance > 50:
+                            st.warning("It's likely to rain. You may want to bring an umbrella or find sheltered amenities.")
+
+                        # Check for heat exhaustion and heat stroke warnings
+                        if temp >= 32:
+                            st.warning("⚠️ Warning: High temperature (≥32°C). Risk of heat stroke. Avoid prolonged outdoor activity.")
+                        elif temp >= 27:
+                            st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion. Stay hydrated and take breaks if outdoors.")
+                else:
+                    st.write(lang_prompts['error_message'])
+
+                # Example events
+                st.subheader("Example Events Retrieved from OnePA")
+                example_events = [
+                    "XYZ CC - Pottery - Free",
+                    "ABC CC - Guitar - $10",
+                    "DEF CC - Yoga - $5",
+                    "GHI CC - Dance - Free"
+                ]
+                
+                for event in example_events:
+                    st.markdown(f"**{event}**")
 
                     extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
                     dengue_clusters = get_dengue_clusters_with_extents(extents)

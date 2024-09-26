@@ -2,7 +2,7 @@
 
 import requests
 
-API_KEY = 'your_api_key'  # Replace with your OpenWeatherMap API key
+API_KEY = '9e6085041c62f51b85975d38a06264c6'  # Replace with your OpenWeatherMap API key
 
 def get_weather_data(lat, lon):
     # Existing function to get current weather data

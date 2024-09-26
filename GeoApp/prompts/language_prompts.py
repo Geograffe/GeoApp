@@ -168,3 +168,19 @@ prompts = {
         "steps_home": "返回家的步骤"
     }
 }
+
+
+themes = [
+    "communityclubs",
+    "libraries",
+    "otherpanetworks",
+    "museums",
+    "pcnaccesspoints",
+    "sportsgsportfacilities",
+    "ccpwoutlet",
+    "parkconnectorloop",
+    "safracentre",
+    "historicsites",
+    "nparksskyrisegreenery",
+    "parks"
+]

@@ -223,49 +223,72 @@ def main():
                 start = f"{lat},{lon}"  # Current location
                 end = f"{st.session_state['home_lat']},{st.session_state['home_lon']}"  # Home location
 
-                # Public transport parameters
-                mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
-                max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
-                date_str = datetime.now().strftime("%m-%d-%Y")
-                time_str = datetime.now().strftime("%H:%M:%S")
+                # Select route type
+                route_type = st.selectbox("Select a Route Type", ["walk", "drive", "cycle", "public transport"], key="home_route_type")
 
-                # Retrieve public transport route to home
-                route_data = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
+                if route_type == "public transport":
+                    # Public transport parameters
+                    mode = st.selectbox("Select Public Transport Mode", ["TRANSIT", "BUS", "RAIL"], key="home_mode")
+                    max_walk_distance = st.number_input("Max Walk Distance (meters)", min_value=500, max_value=5000, step=500, value=1000, key="home_max_walk")
+                    date_str = datetime.now().strftime("%m-%d-%Y")
+                    time_str = datetime.now().strftime("%H:%M:%S")
 
-                if route_data and "route_geometry" in route_data:
-                    route_geometry = route_data["route_geometry"]
-                    
-                    # Display the map with the route
-                    create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+                    # Retrieve public transport route to home
+                    route_data = get_public_transport_route(start, end, date_str, time_str, mode, max_walk_distance)
 
-                    # Display additional information about the route
-                    if "total_duration" in route_data:
-                        total_minutes = route_data["total_duration"]
-                        hours = total_minutes // 60
-                        minutes = total_minutes % 60
-                        time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
-                        st.write(f"**Return Home Time**: {time_str}")
-                    
-                    st.write(f"**Fare**: {route_data.get('fare', 'N/A')}")
+                    if route_data and "route_geometry" in route_data:
+                        route_geometry = route_data["route_geometry"]
 
-                    # Display detailed transit steps
-                    st.subheader("Steps to get home:")
-                    for transit in route_data['transit_details']:
-                        mode = transit.get("mode", "Unknown mode")
-                        route = transit.get("route", "Unknown route")
-                        agency = transit.get("agency", "Unknown agency")
-                        st.write(f"- **Mode**: {mode}, **Route**: {route}, **Agency**: {agency}")
+                        # Display the map with the route
+                        create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
+
+                        # Display additional information about the route
+                        if "total_duration" in route_data:
+                            total_minutes = route_data["total_duration"]
+                            hours = total_minutes // 60
+                            minutes = total_minutes % 60
+                            time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
+                            st.write(f"**Return Home Time**: {time_str}")
+
+                        st.write(f"**Fare**: {route_data.get('fare', 'N/A')}")
+
+                        # Display detailed transit steps
+                        st.subheader("Steps to get home:")
+                        for transit in route_data['transit_details']:
+                            mode = transit.get("mode", "Unknown mode")
+                            route = transit.get("route", "Unknown route")
+                            agency = transit.get("agency", "Unknown agency")
+                            st.write(f"- **Mode**: {mode}, **Route**: {route}, **Agency**: {agency}")
+
+                    else:
+                        st.error("Failed to generate return home route using public transport.")
 
                 else:
-                    st.error("Failed to generate return home route using public transport.")
+                    # Handle walking, driving, and cycling routes
+                    general_route_data = get_general_route(start, end, route_type)
 
+                    if general_route_data and "route_geometry" in general_route_data:
+                        route_geometry = general_route_data["route_geometry"]
+                        create_map_with_features(lat, lon, "Current Location", dengue_clusters, theme_data, polygon_data, user_location, route_geometry)
 
-
+                        if general_route_data and "route_summary" in general_route_data:
+                            total_time_seconds = general_route_data["route_summary"]["total_time"]
+                            total_distance_meters = general_route_data["route_summary"]["total_distance"]
+                            total_minutes = total_time_seconds // 60
+                            hours = total_minutes // 60
+                            minutes = total_minutes % 60
+                            time_str = f"{hours} hours {minutes} minutes" if hours > 0 else f"{minutes} minutes"
+                            total_distance_km = total_distance_meters / 1000
+                            st.write(f"**Total Time**: {time_str}")
+                            st.write(f"**Total Distance**: {total_distance_km:.2f} km")
+                    else:
+                        st.error("Failed to generate return home route for the selected mode.")
 
     with col2:
         if st.button("Restart", key="restart_btn"):
             st.session_state.clear()
             st.rerun()
+
 
 if __name__ == "__main__":
     main()

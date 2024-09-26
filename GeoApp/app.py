@@ -189,7 +189,6 @@ def main():
                 selected_park_data = gdf_within_extent[gdf_within_extent['park_names'] == selected_park].iloc[0]
                 park_lat, park_lon = selected_park_data.geometry.centroid.y, selected_park_data.geometry.centroid.x
                 st.session_state['selected_coords'] = (park_lat, park_lon)
-                st.write(lang_prompts['selected_coords'].format(park_lat, park_lon))
 
         # Dropdown logic for theme locations
         elif location_type == "Community Centers and Historical Sites":
@@ -201,7 +200,6 @@ def main():
                     lat_lng_str = selected_theme.split('-')[-1].strip()
                     selected_lat_lng = [float(coord) for coord in lat_lng_str.split(',')]
                     st.session_state['selected_coords'] = selected_lat_lng
-                    st.write(lang_prompts['selected_coords'].format(*selected_lat_lng))
 
     # Route calculation after selecting the location
     if 'selected_coords' in st.session_state:

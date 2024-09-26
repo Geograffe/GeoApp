@@ -29,7 +29,17 @@ prompts = {
         "dengue_warning": "⚠️ Warning: Red zones on the map indicate dengue cluster areas. Please take precautions.",
         "no_dengue_warning": "No dengue clusters found in your vicinity.",
         "choose_location": "Choose Location Type",
-        "select_park": "Select a Park"
+        "select_park": "Select a Park",
+        "select_theme": "Select a Theme Location",
+        "select_route": "Select a Route Type",
+        "select_transport_mode": "Select Public Transport Mode",
+        "max_walk_distance": "Max Walk Distance (meters)",
+        "return_home_btn": "Return Home",
+        "minutes": "minutes",
+        "hours": "hours",
+        "general_route_error": "Failed to generate route or route geometry missing.",
+        "public_transport_error": "No valid public transport route found.",
+        "steps_home": "Steps to get home"
     },
     "Malay": {
         "prompt": "Sila masukkan kod pos alamat pulang anda di bawah:",
@@ -61,7 +71,17 @@ prompts = {
         "dengue_warning": "⚠️ Amaran: Zon merah di peta menunjukkan kawasan kluster denggi. Sila ambil langkah berjaga-jaga.",
         "no_dengue_warning": "Tiada kluster denggi ditemui di kawasan anda.",
         "choose_location": "Pilih Jenis Lokasi",
-        "select_park": "Pilih Taman"
+        "select_park": "Pilih Taman",
+        "select_theme": "Pilih Lokasi Tema",
+        "select_route": "Pilih Jenis Laluan",
+        "select_transport_mode": "Pilih Mod Pengangkutan Awam",
+        "max_walk_distance": "Jarak Berjalan Maksimum (meter)",
+        "return_home_btn": "Pulang Ke Rumah",
+        "minutes": "minit",
+        "hours": "jam",
+        "general_route_error": "Gagal menghasilkan laluan atau geometri laluan tiada.",
+        "public_transport_error": "Tiada laluan pengangkutan awam yang sah dijumpai.",
+        "steps_home": "Langkah untuk pulang"
     },
     "Tamil": {
         "prompt": "தயவுசெய்து உங்கள் திரும்பும் முகவரியின் அஞ்சல் குறியீட்டை கீழே உள்ளிடவும்:",
@@ -93,7 +113,17 @@ prompts = {
         "dengue_warning": "⚠️ எச்சரிக்கை: வரைபடத்தில் சிவப்பு பகுதிகள் டெங்கு குழுக்களைச் சுட்டிக்காட்டுகின்றன. தயவுசெய்து முன்னெச்சரிக்கையை எடுத்துக்கொள்ளுங்கள்.",
         "no_dengue_warning": "உங்கள் அருகில் டெங்கு குழுக்கள் எதுவும் இல்லை.",
         "choose_location": "இடத்தின் வகையைத் தேர்ந்தெடுக்கவும்",
-        "select_park": "ஒரு பூங்காவைத் தேர்ந்தெடுக்கவும்"
+        "select_park": "ஒரு பூங்காவைத் தேர்ந்தெடுக்கவும்",
+        "select_theme": "தீம் இருப்பிடத்தைத் தேர்ந்தெடுக்கவும்",
+        "select_route": "பாதை வகையைத் தேர்ந்தெடுக்கவும்",
+        "select_transport_mode": "பொது போக்குவரத்து முறையைத் தேர்ந்தெடுக்கவும்",
+        "max_walk_distance": "அதிகபட்ச நடைதூரம் (மீட்டர்)",
+        "return_home_btn": "வீட்டிற்கு திரும்பு",
+        "minutes": "நிமிடங்கள்",
+        "hours": "மணி",
+        "general_route_error": "பாதையை உருவாக்க தவறிவிட்டது அல்லது பாதை கம்பீரம் இல்லை.",
+        "public_transport_error": "சரியான பொதுப் போக்குவரத்து வழி இல்லை.",
+        "steps_home": "வீட்டிற்கு திரும்பு நடைமுறைகள்"
     },
     "Chinese": {
         "prompt": "请在下方输入您的返程地址的邮政编码：",
@@ -125,22 +155,16 @@ prompts = {
         "dengue_warning": "⚠️ 警告：地图上的红色区域表示登革热高发区。请采取预防措施。",
         "no_dengue_warning": "您附近没有发现登革热群集区。",
         "choose_location": "选择位置类型",
-        "select_park": "选择一个公园"
+        "select_park": "选择一个公园",
+        "select_theme": "选择一个主题位置",
+        "select_route": "选择路线类型",
+        "select_transport_mode": "选择公共交通模式",
+        "max_walk_distance": "最大步行距离（米）",
+        "return_home_btn": "返回家",
+        "minutes": "分钟",
+        "hours": "小时",
+        "general_route_error": "生成路线失败或路线几何缺失。",
+        "public_transport_error": "未找到有效的公共交通路线。",
+        "steps_home": "返回家的步骤"
     }
 }
-
-
-themes = [
-    "communityclubs",
-    "libraries",
-    "otherpanetworks",
-    "museums",
-    "pcnaccesspoints",
-    "sportsgsportfacilities",
-    "ccpwoutlet",
-    "parkconnectorloop",
-    "safracentre",
-    "historicsites",
-    "nparksskyrisegreenery",
-    "parks"
-]

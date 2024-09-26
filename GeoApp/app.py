@@ -105,19 +105,28 @@ def main():
                     else:
                         st.write("Unable to retrieve current weather data.")
                     
-                    # Fetch forecast data for the next 1-2 hours
+                     # Fetch forecast data for the next 1-2 hours
                     forecast_data = get_forecast_data(lat, lon)
                     st.subheader("Weather Forecast for the Next 1-2 Hours")
                     
                     if forecast_data and 'list' in forecast_data:
+                        # Timezone conversion to Singapore Time
+                        sg_timezone = pytz.timezone("Asia/Singapore")
+
                         # Get the closest forecast time periods (typically 3-hour intervals)
                         for entry in forecast_data['list'][:1]:  # We only fetch the first entry (~next 1-2 hours)
                             dt_txt = entry['dt_txt']
+                            
+                            # Convert the UTC time to Singapore time
+                            utc_time = datetime.strptime(dt_txt, '%Y-%m-%d %H:%M:%S')
+                            utc_time = utc_time.replace(tzinfo=pytz.utc)
+                            sg_time = utc_time.astimezone(sg_timezone)  # Convert to Singapore time
+                            
                             temp = entry['main']['temp']
                             weather_description = entry['weather'][0]['description']
                             rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
 
-                            st.write(f"**At {dt_txt}:**")
+                            st.write(f"**At {sg_time.strftime('%Y-%m-%d %H:%M:%S')} SGT:**")
                             st.write(f"- Temperature: {temp}°C")
                             st.write(f"- Weather: {weather_description.capitalize()}")
                             st.write(f"- Chance of Rain: {rain_chance}%")

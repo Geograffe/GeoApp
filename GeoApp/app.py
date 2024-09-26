@@ -151,17 +151,17 @@ def main():
                 else:
                     st.write(lang_prompts['error_message'])
 
-                # Example events
-                st.subheader("Example Events Retrieved from OnePA")
-                example_events = [
-                    "XYZ CC - Pottery - Free",
-                    "ABC CC - Guitar - $10",
-                    "DEF CC - Yoga - $5",
-                    "GHI CC - Dance - Free"
-                ]
-                
-                for event in example_events:
-                    st.markdown(f"**{event}**")
+                 # Add the following code block to display example events
+                    st.subheader("Example Events Retrieved from OnePA")
+                    example_events = [
+                        "XYZ CC - Pottery - Free",
+                        "ABC CC - Guitar - $10",
+                        "DEF CC - Yoga - $5",
+                        "GHI CC - Dance - Free"
+                    ]
+                    
+                    for event in example_events:
+                        st.markdown(f"**{event}**")
 
                     extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
                     dengue_clusters = get_dengue_clusters_with_extents(extents)

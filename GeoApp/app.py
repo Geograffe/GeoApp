@@ -39,72 +39,125 @@ def main():
         st.error(f"Error loading GeoJSON file: {e}")
         return
 
-    # Fetch weather data for the current location
-    weather_data = get_weather_data(lat, lon)
-    st.subheader("Current Weather Data")
-    if weather_data:
-        st.write(f"**Weather Station**: {weather_data['name']}")
-        st.write(f"**Weather**: {weather_data['weather'][0]['description'].capitalize()}")
-        st.write(f"**Temperature**: {weather_data['main']['temp']}°C")
-        st.write(f"**Feels Like**: {weather_data['main']['feels_like']}°C")
-        st.write(f"**Humidity**: {weather_data['main']['humidity']}%")
-        st.write(f"**Wind Speed**: {weather_data['wind']['speed']} m/s, Wind Direction: {weather_data['wind']['deg']}°")
-    else:
-        st.write("Unable to retrieve current weather data.")
+    dengue_clusters = get_dengue_clusters_with_extents(f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}")
     
-    # Fetch forecast data for the next 1-2 hours
-    forecast_data = get_forecast_data(lat, lon)
-    st.subheader("Weather Forecast for the Next 1-2 Hours")
+    # Define extent (bounding box)
+    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
     
-    if forecast_data and 'list' in forecast_data:
-        # Get the closest forecast time periods (typically 3-hour intervals)
-        for entry in forecast_data['list'][:1]:  # We only fetch the first entry (~next 1-2 hours)
-            dt_txt = entry['dt_txt']
-            temp = entry['main']['temp']
-            weather_description = entry['weather'][0]['description']
-            rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
+    # Filter parks within extent
+    gdf_within_extent = gdf[gdf.geometry.within(extent_polygon)]
+    
+    # Extract park names within extent
+    gdf_within_extent['park_names'] = gdf_within_extent['Description'].apply(extract_name_from_description)
 
-            st.write(f"**At {dt_txt}:**")
-            st.write(f"- Temperature: {temp}°C")
-            st.write(f"- Weather: {weather_description.capitalize()}")
-            st.write(f"- Chance of Rain: {rain_chance}%")
+    # Display map with current location and dengue clusters
+    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
+    create_map_with_features(lat, lon, "Current Location", dengue_clusters, [], polygon_data, user_location)
 
-            # Check if it's likely to rain
-            if rain_chance > 50:
-                st.warning("It's likely to rain. You may want to bring an umbrella or find sheltered amenities.")
+    # Language selection logic
+    if 'language' not in st.session_state:
+        st.write("Please select your language:")
 
-            # Check for heat exhaustion and heat stroke warnings
-            if temp >= 32:
-                st.warning("⚠️ Warning: High temperature (≥32°C). Risk of heat stroke. Avoid prolonged outdoor activity.")
-            elif temp >= 27:
-                st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion. Stay hydrated and take breaks if outdoors.")
-    else:
-        st.write("Unable to retrieve forecast data.")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            if st.button("English", key="english_btn"):
+                st.session_state['language'] = 'English'
+        with col2:
+            if st.button("Bahasa Melayu", key="malay_btn"):
+                st.session_state['language'] = 'Malay'
+        with col3:
+            if st.button("தமிழ்", key="tamil_btn"):
+                st.session_state['language'] = 'Tamil'
+        with col4:
+            if st.button("中文", key="chinese_btn"):
+                st.session_state['language'] = 'Chinese'
+
+    # Main flow after language selection
+    if 'language' in st.session_state:
+        # Use the selected language for prompts
+        lang_prompts = prompts[st.session_state['language']]
+        st.success(f"Selected Language: {st.session_state['language']}")
+
+        # Input postal code to set as the return/home point, display only once
+        user_input = st.text_input(lang_prompts['prompt'], value=st.session_state.get("user_input", ""))  # Ensure prompt comes from language file
+
+        if st.button(lang_prompts['enter_button'], key="enter_btn"):
+            if user_input:
+                latlon = get_latlon_from_postal(user_input)
+                if latlon:
+                    home_lat, home_lon = latlon
+                    st.session_state["user_input"] = user_input  # Save the postal code
+                    st.session_state["home_lat"] = home_lat     # Save the postal code lat
+                    st.session_state["home_lon"] = home_lon     # Save the postal code lon
+                    st.success(f"Home location set: Latitude {home_lat}, Longitude {home_lon}")
+
+                    # Fetch weather data for the current location
+                    weather_data = get_weather_data(lat, lon)
+                    st.subheader("Current Weather Data")
+                    if weather_data:
+                        st.write(f"**Weather Station**: {weather_data['name']}")
+                        st.write(f"**Weather**: {weather_data['weather'][0]['description'].capitalize()}")
+                        st.write(f"**Temperature**: {weather_data['main']['temp']}°C")
+                        st.write(f"**Feels Like**: {weather_data['main']['feels_like']}°C")
+                        st.write(f"**Humidity**: {weather_data['main']['humidity']}%")
+                        st.write(f"**Wind Speed**: {weather_data['wind']['speed']} m/s, Wind Direction: {weather_data['wind']['deg']}°")
+                    else:
+                        st.write("Unable to retrieve current weather data.")
                     
-        # Add the following code block to display example events
-    st.subheader("Example Events Retrieved from OnePA")
-    example_events = [
-    "XYZ CC - Pottery - Free",
-    "ABC CC - Guitar - $10",
-    "DEF CC - Yoga - $5",
-    "GHI CC - Dance - Free"
-    ]
+                    # Fetch forecast data for the next 1-2 hours
+                    forecast_data = get_forecast_data(lat, lon)
+                    st.subheader("Weather Forecast for the Next 1-2 Hours")
                     
-    for event in example_events:
-        st.markdown(f"**{event}**")
+                    if forecast_data and 'list' in forecast_data:
+                        # Get the closest forecast time periods (typically 3-hour intervals)
+                        for entry in forecast_data['list'][:1]:  # We only fetch the first entry (~next 1-2 hours)
+                            dt_txt = entry['dt_txt']
+                            temp = entry['main']['temp']
+                            weather_description = entry['weather'][0]['description']
+                            rain_chance = entry.get('pop', 0) * 100  # Probability of precipitation
 
-        extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
-        dengue_clusters = get_dengue_clusters_with_extents(extents)
+                            st.write(f"**At {dt_txt}:**")
+                            st.write(f"- Temperature: {temp}°C")
+                            st.write(f"- Weather: {weather_description.capitalize()}")
+                            st.write(f"- Chance of Rain: {rain_chance}%")
 
-        extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
-        polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
+                            # Check if it's likely to rain
+                            if rain_chance > 50:
+                                st.warning("It's likely to rain. You may want to bring an umbrella or find sheltered amenities.")
 
-        theme_data = []
-        for theme in themes:
-            theme_data.extend(get_theme_data(theme, extents))
+                            # Check for heat exhaustion and heat stroke warnings
+                            if temp >= 32:
+                                st.warning("⚠️ Warning: High temperature (≥32°C). Risk of heat stroke. Avoid prolonged outdoor activity.")
+                            elif temp >= 27:
+                                st.warning("⚠️ Caution: High temperature (≥27°C). Risk of heat exhaustion. Stay hydrated and take breaks if outdoors.")
+                    else:
+                        st.write("Unable to retrieve forecast data.")
+                    
+                    # Add the following code block to display example events
+                    st.subheader("Example Events Retrieved from OnePA")
+                    example_events = [
+                        "XYZ CC - Pottery - Free",
+                        "ABC CC - Guitar - $10",
+                        "DEF CC - Yoga - $5",
+                        "GHI CC - Dance - Free"
+                    ]
+                    
+                    for event in example_events:
+                        st.markdown(f"**{event}**")
 
-        # Save theme data in session state
-        st.session_state['theme_data'] = theme_data
+                    extents = f"{lat-0.035},{lon-0.035},{lat+0.035},{lon+0.035}"
+                    dengue_clusters = get_dengue_clusters_with_extents(extents)
+
+                    extent_polygon = box(lon - 0.025, lat - 0.025, lon + 0.025, lat + 0.025)
+                    polygon_data = load_polygons_from_geojson_within_extents(gdf, extent_polygon)
+
+                    theme_data = []
+                    for theme in themes:
+                        theme_data.extend(get_theme_data(theme, extents))
+
+                    # Save theme data in session state
+                    st.session_state['theme_data'] = theme_data
 
     # Dropdown for selecting between Parks and Theme locations
     if 'theme_data' in st.session_state and st.session_state['theme_data']:

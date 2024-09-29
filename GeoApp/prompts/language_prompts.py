@@ -42,7 +42,7 @@ prompts = {
         "steps_home": "Steps to get home",
         "forecasted_weather_prompt": "Forecasted Weather Conditions",
         "chance_of_rain": "Chance of Rain",
-
+         "rain_warning": "⚠️ Higher chance of rain. Please bring an umbrella or plan indoor activities."
     },
     "Malay": {
         "prompt": "Sila masukkan kod pos alamat pulang anda di bawah:",
@@ -87,7 +87,7 @@ prompts = {
         "steps_home": "Langkah untuk pulang",
         "forecasted_weather_prompt": "Ramalan Keadaan Cuaca",
         "chance_of_rain": "Kemungkinan Hujan",
-
+        "rain_warning": "⚠️ Kemungkinan hujan lebih tinggi. Sila bawa payung atau rancang aktiviti di dalam bangunan."
     },
     "Tamil": {
         "prompt": "தயவுசெய்து உங்கள் திரும்பும் முகவரியின் அஞ்சல் குறியீட்டை கீழே உள்ளிடவும்:",
@@ -132,7 +132,7 @@ prompts = {
         "steps_home": "வீட்டிற்கு திரும்பு நடைமுறைகள்",
         "forecasted_weather_prompt": "முன்கூட்டிய காலநிலை நிலை",
         "chance_of_rain": "மழையின் வாய்ப்பு",
-
+        "rain_warning": "⚠️ மழை பெய்வதற்கான அதிக வாய்ப்பு உள்ளது. தயவுசெய்து குடையை எடுத்துச் செல்லவும் அல்லது உட்புற செயல்பாடுகளைத் திட்டமிடுங்கள்."
     },
     "Chinese": {
         "prompt": "请在下方输入您的返程地址的邮政编码：",
@@ -177,7 +177,7 @@ prompts = {
         "steps_home": "返回家的步骤",
         "forecasted_weather_prompt": "预报天气情况",
         "chance_of_rain": "下雨的可能性",
-
+        "rain_warning": "⚠️ 下雨的可能性较高。请带上雨伞或计划室内活动。"
     }
 }
 

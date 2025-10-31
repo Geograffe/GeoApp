@@ -1,7 +1,4 @@
 # Geospatial-Innovation-Hackathon
-Here’s a standard `README.md` file template for your geospatial app project. You can adjust the content based on your specific needs:
-
----
 
 # Geospatial App with OneMap and OpenWeatherMap
 
